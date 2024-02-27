@@ -28,6 +28,22 @@
 #include <pthread.h>
 #include <errno.h>
 
+/**
+ * @brief Sends an acknowledgment message to the sender.
+ * 
+ * TODO: add sequence number to ack_msg (depends on how this is implemented in sender)
+ * 
+ * @param sockfd 
+ * @param addr 
+ * @param addrlen 
+ */
+void send_ack(int sockfd, struct sockaddr_in* addr, socklen_t addrlen)
+{
+    // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
+    char ack_msg[] = "ACK";
+    sendto(sockfd, ack_msg, sizeof(ack_msg), 0, (struct sockaddr*) addr, addrlen);
+}
+
 /** @brief Writes the bytes received on port myUDPport to a file 
  *         called destinationFile at a rate of writeRate bytes 
  *         per second.
@@ -93,6 +109,8 @@ void rrecv(unsigned short int myUDPport,
 
         fwrite(buffer, 1, bytes_received, file);
         bytes_written += bytes_received;
+
+        send_ack(sockfd, &addr, addrlen);
 
         time(&end);
 
