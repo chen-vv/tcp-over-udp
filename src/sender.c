@@ -19,6 +19,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -47,7 +48,58 @@ void rsend(char* hostname,
             char* filename, 
             unsigned long long int bytesToTransfer) 
 {
+    // https://www.geeksforgeeks.org/socket-programming-cc/
+    int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sockfd < 0) {
+        perror("socket");
+        exit(1);
+    }
 
+    // https://www.cs.cmu.edu/~srini/15-441/S10/lectures/r01-sockets.pdf
+    struct hostent *host = gethostbyname(hostname);
+    if (host == NULL) {
+        perror("gethostbyname");
+        exit(1);
+    }
+
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(hostUDPport);
+    memcpy(&addr.sin_addr.s_addr, host->h_addr, host->h_length);
+
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+
+    unsigned long long bytesSent = 0;
+    char buffer[1024];
+
+    while (bytesSent < bytesToTransfer) {
+        int bytesRead = fread(buffer, 1, sizeof(buffer), file);
+        if (bytesRead <= 0) {
+            // https://www.tutorialspoint.com/eof-getc-and-feof-in-c
+            if (feof(file)) {
+                // End of file
+                break;
+            }
+            perror("fread");
+            exit(1);
+        }
+
+        // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
+        int bytesSentThisTime = sendto(sockfd, buffer, bytesRead, 0, (struct sockaddr*) &addr, sizeof(addr));
+        if (bytesSentThisTime < 0) {
+            perror("sendto");
+            exit(1);
+        }
+
+        bytesSent += bytesSentThisTime;
+    }
+
+    fclose(file);
+    close(sockfd);
 }
 
 /** @brief UDP sender entrypoint.
@@ -66,6 +118,7 @@ int main(int argc, char** argv) {
     int hostUDPport;
     unsigned long long int bytesToTransfer;
     char* hostname = NULL;
+    char* filename = NULL;
 
     if (argc != 5) {
         fprintf(stderr, "usage: %s receiver_hostname receiver_port filename_to_xfer bytes_to_xfer\n\n", argv[0]);
@@ -73,7 +126,10 @@ int main(int argc, char** argv) {
     }
     hostUDPport = (unsigned short int) atoi(argv[2]);
     hostname = argv[1];
+    filename = argv[3];
     bytesToTransfer = atoll(argv[4]);
+
+    rsend(hostname, hostUDPport, filename, bytesToTransfer);
 
     return (EXIT_SUCCESS);
 }
