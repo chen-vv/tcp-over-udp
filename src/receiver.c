@@ -45,8 +45,34 @@
  */
 void rrecv(unsigned short int myUDPport, 
             char* destinationFile, 
-            unsigned long long int writeRate) {
+            unsigned long long int writeRate)
+{
+    // https://www.geeksforgeeks.org/socket-programming-cc/
+    int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sockfd < 0) {
+        perror("socket");
+        exit(1);
+    }
 
+    // https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
+    struct sockaddr_in *addr = NULL;
+    addr->sin_family = AF_INET;
+    addr->sin_port = htons(myUDPport);
+    addr->sin_addr.s_addr = htonl(INADDR_ANY);
+
+    socklen_t addrlen = sizeof(addr);
+
+    int err = bind(sockfd, (struct sockaddr*) addr, addrlen);
+    if (err < 0) {
+        perror("bind");
+        exit(1);
+    }
+
+    FILE *file = fopen(destinationFile, "wb");
+    if (file == NULL) {
+        perror("fopen");
+        exit(1);
+    }
 }
 
 
