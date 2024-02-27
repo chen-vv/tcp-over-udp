@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <sys/time.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -27,6 +28,14 @@
 
 #include <pthread.h>
 #include <errno.h>
+
+#define HEADER_SIZE sizeof(struct Header)
+#define USEC_PER_MILLISEC 1000
+
+// TODO: comments
+struct Header {
+    uint32_t sequence_number;
+};
 
 /** @brief Sends the first bytesToTransfer bytes of the file
  *         indicated by filename to the receiver at 
@@ -55,6 +64,15 @@ void rsend(char* hostname,
         exit(1);
     }
 
+    // https://stackoverflow.com/questions/13547721/udp-socket-set-timeout
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100 * USEC_PER_MILLISEC;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+        perror("timeout");
+    }
+
     // https://www.cs.cmu.edu/~srini/15-441/S10/lectures/r01-sockets.pdf
     struct hostent *host = gethostbyname(hostname);
     if (host == NULL) {
@@ -75,6 +93,9 @@ void rsend(char* hostname,
 
     unsigned long long bytesSent = 0;
     char buffer[1024];
+    char packet[1024 + HEADER_SIZE];
+    struct Header header;
+    int sequenceNumber = 0;
 
     while (bytesSent < bytesToTransfer) {
         int bytesRead = fread(buffer, 1, sizeof(buffer), file);
@@ -88,14 +109,23 @@ void rsend(char* hostname,
             exit(1);
         }
 
-        // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
-        int bytesSentThisTime = sendto(sockfd, buffer, bytesRead, 0, (struct sockaddr*) &addr, sizeof(addr));
+        header.sequence_number = sequenceNumber;
+
+        memcpy(packet, &header, HEADER_SIZE);
+        memcpy(packet + HEADER_SIZE, buffer, strlen(buffer) + 1); // Include null terminator
+
+
+        // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-buffer-socket
+        int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + strlen(buffer) + 1, 0, (struct sockaddr*) &addr, sizeof(addr));
         if (bytesSentThisTime < 0) {
             perror("sendto");
             exit(1);
         }
 
+        printf("Packet sent with sequence number: %d\n", sequenceNumber);
+
         bytesSent += bytesSentThisTime;
+        sequenceNumber++;
     }
 
     fclose(file);
