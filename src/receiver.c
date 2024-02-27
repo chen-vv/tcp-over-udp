@@ -19,6 +19,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -73,6 +74,36 @@ void rrecv(unsigned short int myUDPport,
         perror("fopen");
         exit(1);
     }
+
+    // https://www.geeksforgeeks.org/time-function-in-c/
+    time_t start, end;
+    time(&start);
+
+    unsigned long long bytes_written = 0;
+
+    while (1) {
+        // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
+        char buffer[1024];
+        
+        int bytes_received = recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*) addr, &addrlen);
+        if (bytes_received < 0) {
+            perror("recvfrom");
+            exit(1);
+        }
+
+        fwrite(buffer, 1, bytes_received, file);
+        bytes_written += bytes_received;
+
+        time(&end);
+
+        double seconds = difftime(end, start);
+        if (writeRate > 0 && bytes_written / seconds > writeRate) {
+            sleep(1);
+        }
+    }
+
+    fclose(file);
+    close(sockfd);
 }
 
 
