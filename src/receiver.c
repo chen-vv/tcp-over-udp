@@ -19,6 +19,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -45,8 +46,64 @@
  */
 void rrecv(unsigned short int myUDPport, 
             char* destinationFile, 
-            unsigned long long int writeRate) {
+            unsigned long long int writeRate)
+{
+    // https://www.geeksforgeeks.org/socket-programming-cc/
+    int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sockfd < 0) {
+        perror("socket");
+        exit(1);
+    }
 
+    // https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(myUDPport);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    socklen_t addrlen = sizeof(addr);
+
+    int err = bind(sockfd, (struct sockaddr*) &addr, addrlen);
+    if (err < 0) {
+        perror("bind");
+        exit(1);
+    }
+
+    FILE *file = fopen(destinationFile, "wb");
+    if (file == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+
+    // https://www.geeksforgeeks.org/time-function-in-c/
+    time_t start, end;
+    time(&start);
+
+    unsigned long long bytes_written = 0;
+
+    while (1) {
+        // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
+        char buffer[1024];
+        
+        int bytes_received = recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*) &addr, &addrlen);
+        if (bytes_received < 0) {
+            perror("recvfrom");
+            exit(1);
+        }
+
+        fwrite(buffer, 1, bytes_received, file);
+        bytes_written += bytes_received;
+
+        time(&end);
+
+        double seconds = difftime(end, start);
+        if (writeRate > 0 && bytes_written / seconds > writeRate) {
+            sleep(1);
+        }
+    }
+
+    fclose(file);
+    close(sockfd);
 }
 
 
@@ -70,4 +127,8 @@ int main(int argc, char** argv) {
     }
 
     udpPort = (unsigned short int) atoi(argv[1]);
+
+    rrecv(udpPort, argv[2], 0);
+
+    return 0;
 }
