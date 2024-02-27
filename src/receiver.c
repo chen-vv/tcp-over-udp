@@ -56,14 +56,14 @@ void rrecv(unsigned short int myUDPport,
     }
 
     // https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
-    struct sockaddr_in *addr = NULL;
-    addr->sin_family = AF_INET;
-    addr->sin_port = htons(myUDPport);
-    addr->sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(myUDPport);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     socklen_t addrlen = sizeof(addr);
 
-    int err = bind(sockfd, (struct sockaddr*) addr, addrlen);
+    int err = bind(sockfd, (struct sockaddr*) &addr, addrlen);
     if (err < 0) {
         perror("bind");
         exit(1);
@@ -85,7 +85,7 @@ void rrecv(unsigned short int myUDPport,
         // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
         char buffer[1024];
         
-        int bytes_received = recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*) addr, &addrlen);
+        int bytes_received = recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*) &addr, &addrlen);
         if (bytes_received < 0) {
             perror("recvfrom");
             exit(1);
