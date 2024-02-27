@@ -127,4 +127,8 @@ int main(int argc, char** argv) {
     }
 
     udpPort = (unsigned short int) atoi(argv[1]);
+
+    rrecv(udpPort, argv[2], 0);
+
+    return 0;
 }
