@@ -6,4 +6,14 @@ This project uses UDP to implement our own version of TCP. Our implementation is
 
 ## Additional Notes
 
-TODO: specify more info about build commands, doxygen documentation, testing etc
+TODO: specify more info about build commands, testing etc
+
+### Documentation
+
+Doxygen was used to document our code.
+To generate new documentation, do the following:
+
+1. Install [Doxygen](https://www.doxygen.nl/).
+2. In the command line, navigate to the doxygen directory using `cd /doxygen`.
+3. Next, run `doxygen Doxyfile` to generate the documentation.
+4. The documentation can be viewed by opening the file `doxygen/html/index.html` in a browser.
