@@ -3,8 +3,8 @@
  *
  *  This contains the code for the receiver
  *  using the UDP file transfer protocol. The
- *  main function parses the command line arguments 
- *  and then calls the rrecv function to receive 
+ *  main function parses the command line arguments
+ *  and then calls the rrecv function to receive
  *  the file.
  *
  *  @author Vicky Chen (chen-vv)
@@ -31,42 +31,43 @@
 
 /**
  * @brief Sends an acknowledgment message to the sender.
- * 
+ *
  * TODO: add sequence number to ack_msg (depends on how this is implemented in sender)
- * 
- * @param sockfd 
- * @param addr 
- * @param addrlen 
+ *
+ * @param sockfd
+ * @param addr
+ * @param addrlen
  */
-void send_ack(int sockfd, struct sockaddr_in* addr, socklen_t addrlen, uint32_t sequence_number)
+void send_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t sequenceNumber)
 {
     // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
-    sendto(sockfd, &sequence_number, sizeof(uint32_t), 0, (struct sockaddr*)addr, addrlen);
+    sendto(sockfd, &sequenceNumber, sizeof(uint32_t), 0, (struct sockaddr *)addr, addrlen);
 }
 
-/** @brief Writes the bytes received on port myUDPport to a file 
- *         called destinationFile at a rate of writeRate bytes 
+/** @brief Writes the bytes received on port myUDPport to a file
+ *         called destinationFile at a rate of writeRate bytes
  *         per second.
  *
- *  If writeRate is 0 then the receiver can write as many bytes 
- *  as possible into destinationFile. Otherwise, if writeRate is 
- *  non-zero then the receiver should write no more than 
- *  writeRate bytes per second to destinationFile. See rsend for 
+ *  If writeRate is 0 then the receiver can write as many bytes
+ *  as possible into destinationFile. Otherwise, if writeRate is
+ *  non-zero then the receiver should write no more than
+ *  writeRate bytes per second to destinationFile. See rsend for
  *  the counterpart function.
  *
  *  @param myUDPport The port number to listen on.
  *  @param destinationFile The name of the file to write to.
  *  @param writeRate The maximum number of bytes to write per second.
- *                   Must be an integer greater than or equal to zero.   
+ *                   Must be an integer greater than or equal to zero.
  *  @return Void.
  */
-void rrecv(unsigned short int myUDPport, 
-            char* destinationFile, 
-            unsigned long long int writeRate)
+void rrecv(unsigned short int myUDPport,
+           char *destinationFile,
+           unsigned long long int writeRate)
 {
     // https://www.geeksforgeeks.org/socket-programming-cc/
     int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sockfd < 0) {
+    if (sockfd < 0)
+    {
         perror("socket");
         exit(1);
     }
@@ -79,55 +80,74 @@ void rrecv(unsigned short int myUDPport,
 
     socklen_t addrlen = sizeof(addr);
 
-    int err = bind(sockfd, (struct sockaddr*) &addr, addrlen);
-    if (err < 0) {
+    int err = bind(sockfd, (struct sockaddr *)&addr, addrlen);
+    if (err < 0)
+    {
         perror("bind");
         exit(1);
     }
 
     FILE *file = fopen(destinationFile, "wb");
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("fopen");
         exit(1);
     }
+
+    fprintf(stdout, "Receiver ready. Waiting for bytes...\n");
 
     // https://www.geeksforgeeks.org/time-function-in-c/
     time_t start, end;
     time(&start);
 
-    unsigned long long bytes_written = 0;
+    unsigned long long bytesWritten = 0;
 
-    while (1) {
+    while (1)
+    {
         // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
-        char buffer[MAX_BUFFER_SIZE + HEADER_SIZE];
+        int packetSize = MAX_BUFFER_SIZE + HEADER_SIZE;
+        char packet[packetSize];
 
-        int bytes_received = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, &addrlen);
-        if (bytes_received < 0) {
+        int bytesReceived = recvfrom(sockfd, packet, packetSize, 0, (struct sockaddr *)&addr, &addrlen);
+
+        fprintf(stdout, "Received %d bytes\n", bytesReceived);
+
+        if (bytesReceived < 0)
+        {
             perror("recvfrom");
             exit(1);
         }
 
-        void *null_byte = memchr(buffer, '\0', bytes_received);
-        if (null_byte != NULL) {
-            bytes_received = (char*) null_byte - buffer;
-            fwrite(buffer, 1, bytes_received, file);
+        void *nullByte = memchr(packet, '\0', bytesReceived);
+        if (nullByte != NULL)
+        {
+            fprintf(stdout, "Received last packet\n");
+            bytesReceived = (char *)nullByte - packet;
+            if (fwrite(packet, 1, bytesReceived, file) != bytesReceived) {
+                fprintf(stderr, "Error writing to file");
+            }
+            
             break;
         }
 
-        uint32_t seq_number;
-        memcpy(&seq_number, buffer, HEADER_SIZE);
-        send_ack(sockfd, &addr, addrlen, seq_number);
+        uint32_t sequenceNumber;
+        memcpy(&sequenceNumber, packet, HEADER_SIZE);
 
-        char *data_buffer = buffer + HEADER_SIZE;
-        bytes_received -= HEADER_SIZE;
+        fprintf(stdout, "Sending ACK for packet with sequence number: %d\n", sequenceNumber);
 
-        fwrite(data_buffer, 1, bytes_received, file);
-        bytes_written += bytes_received;
+        send_ack(sockfd, &addr, addrlen, sequenceNumber);
+
+        char *dataBuffer = packet + HEADER_SIZE;
+        bytesReceived -= HEADER_SIZE;
+
+        fwrite(dataBuffer, 1, bytesReceived, file);
+        bytesWritten += bytesReceived;
 
         time(&end);
 
         double seconds = difftime(end, start);
-        if (writeRate > 0 && bytes_written / seconds > writeRate) {
+        if (writeRate > 0 && bytesWritten / seconds > writeRate)
+        {
             sleep(1);
         }
     }
@@ -136,29 +156,34 @@ void rrecv(unsigned short int myUDPport,
     close(sockfd);
 }
 
-
 /** @brief UDP receiver entrypoint.
  *
  *  TODO: Implement main & write comments
  *
  *  @return Should not return
  */
-int main(int argc, char** argv) {
-    // This is a skeleton of a main function.
-    // You should implement this function more completely
-    // so that one can invoke the file transfer from the
-    // command line.
+int main(int argc, char **argv)
+{
 
     unsigned short int udpPort;
+    char *destinationFile = NULL;
+    unsigned long long int writeRate;
 
-    if (argc != 3) {
+    if (argc != 3)
+    {
         fprintf(stderr, "usage: %s UDP_port filename_to_write\n\n", argv[0]);
         exit(1);
     }
 
-    udpPort = (unsigned short int) atoi(argv[1]);
+    udpPort = (unsigned short int)atoi(argv[1]);
+    destinationFile = argv[2];
 
-    rrecv(udpPort, argv[2], 0);
+    // TODO: pass in writeRate from command line
+    writeRate = 0;
 
-    return 0;
+    fprintf(stdout, "Initializing receiver to listen on port %d and write to %s\n", udpPort, destinationFile);
+
+    rrecv(udpPort, destinationFile, writeRate);
+
+    return (EXIT_SUCCESS);
 }
