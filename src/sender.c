@@ -28,14 +28,7 @@
 
 #include <pthread.h>
 #include <errno.h>
-
-#define HEADER_SIZE sizeof(struct Header)
-#define USEC_PER_MILLISEC 1000
-
-// TODO: comments
-struct Header {
-    uint32_t sequence_number;
-};
+#include "include/udp.h"
 
 /** @brief Sends the first bytesToTransfer bytes of the file
  *         indicated by filename to the receiver at 
@@ -92,8 +85,8 @@ void rsend(char* hostname,
     }
 
     unsigned long long bytesSent = 0;
-    char buffer[1024];
-    char packet[1024 + HEADER_SIZE];
+    char buffer[MAX_BUFFER_SIZE];
+    char packet[MAX_BUFFER_SIZE + HEADER_SIZE];
     struct Header header;
     int sequenceNumber = 0;
 
@@ -109,11 +102,10 @@ void rsend(char* hostname,
             exit(1);
         }
 
-        header.sequence_number = sequenceNumber;
+        header.sequenceNumber = sequenceNumber;
 
         memcpy(packet, &header, HEADER_SIZE);
         memcpy(packet + HEADER_SIZE, buffer, strlen(buffer) + 1); // Include null terminator
-
 
         // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-buffer-socket
         int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + strlen(buffer) + 1, 0, (struct sockaddr*) &addr, sizeof(addr));
@@ -122,7 +114,14 @@ void rsend(char* hostname,
             exit(1);
         }
 
-        printf("Packet sent with sequence number: %d\n", sequenceNumber);
+        printf("Packet sent with sequence number: %d\nWaiting for acknowledgement...", sequenceNumber);
+
+        // TODO: Wait for acknowledgement - set timeout again if needed?
+        int bytesReceived = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, (socklen_t) sizeof(addr));
+        if (bytesReceived < 0) {
+            perror("recvfrom");
+            exit(1);
+        }
 
         bytesSent += bytesSentThisTime;
         sequenceNumber++;
