@@ -38,11 +38,10 @@
  * @param addr 
  * @param addrlen 
  */
-void send_ack(int sockfd, struct sockaddr_in* addr, socklen_t addrlen)
+void send_ack(int sockfd, struct sockaddr_in* addr, socklen_t addrlen, uint32_t sequence_number)
 {
     // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
-    char ack_msg[] = "ACK";
-    sendto(sockfd, ack_msg, sizeof(ack_msg), 0, (struct sockaddr*) addr, addrlen);
+    sendto(sockfd, &sequence_number, sizeof(uint32_t), 0, (struct sockaddr*)addr, addrlen);
 }
 
 /** @brief Writes the bytes received on port myUDPport to a file 
@@ -100,8 +99,8 @@ void rrecv(unsigned short int myUDPport,
 
     while (1) {
         // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
-        char buffer[MAX_BUFFER_SIZE];
-        
+        char buffer[MAX_BUFFER_SIZE + HEADER_SIZE];
+
         int bytes_received = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, &addrlen);
         if (bytes_received < 0) {
             perror("recvfrom");
@@ -115,10 +114,15 @@ void rrecv(unsigned short int myUDPport,
             break;
         }
 
-        fwrite(buffer, 1, bytes_received, file);
-        bytes_written += bytes_received;
+        uint32_t seq_number;
+        memcpy(&seq_number, buffer, sizeof(HEADER_SIZE));
+        send_ack(sockfd, &addr, addrlen, seq_number);
 
-        send_ack(sockfd, &addr, addrlen);
+        char *data_buffer = buffer + HEADER_SIZE;
+        bytes_received -= HEADER_SIZE;
+
+        fwrite(data_buffer, 1, bytes_received, file);
+        bytes_written += bytes_received;
 
         time(&end);
 
