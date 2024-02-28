@@ -122,11 +122,21 @@ void rrecv(unsigned short int myUDPport,
         if (nullByte != NULL)
         {
             fprintf(stdout, "Received last packet\n");
-            bytesReceived = (char *)nullByte - packet;
-            if (fwrite(packet, 1, bytesReceived, file) != bytesReceived) {
+
+            // TODO: for debugging purposes, remove later
+            printf("Received bytes: ");
+            for (int i = 0; i < bytesReceived; ++i)
+            {
+                printf("%02X ", (unsigned char)packet[i]);
+            }
+            printf("\n");
+            // TODO: end debugging
+
+            if (fwrite(packet, 1, bytesReceived, file) != bytesReceived)
+            {
                 fprintf(stderr, "Error writing to file");
             }
-            
+
             break;
         }
 

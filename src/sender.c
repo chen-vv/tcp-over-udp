@@ -94,7 +94,7 @@ void rsend(char *hostname,
     char data[MAX_BUFFER_SIZE];
     char packet[MAX_BUFFER_SIZE + HEADER_SIZE];
     struct Header header;
-    int sequenceNumber = 0;
+    int sequenceNumber = 1;
 
     while (bytesSent < bytesToTransfer)
     {
@@ -130,29 +130,38 @@ void rsend(char *hostname,
 
         bytesSent += bytesSentThisTime;
         sequenceNumber++;
-        // // TODO: Wait for acknowledgement - set timeout again if needed?
-        // socklen_t addrlen = sizeof(addr);
-        // int bytesReceived = recvfrom(sockfd, data, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, &addrlen);
-        // if (bytesReceived < 0) {
-        //     if (errno == EWOULDBLOCK) {
-        //         if (retries < MAX_RETRIES) {
-        //             timeout *= 2;
-        //             printf("No response. Now waiting for %d\n", timeout);
-        //             continue;
-        //         } else {
-        //             printf("No response after %d retries. Exiting.\n", MAX_RETRIES);
-        //             exit(1);
-        //         }
-        //     } else {
-        //         perror("recvfrom");
-        //         exit(1);
-        //     }
-        // } else {
-        //     printf("Received response: %s\n", data);
+        // TODO: Wait for acknowledgement - set timeout again if needed?
+        socklen_t addrlen = sizeof(addr);
+        int bytesReceived = recvfrom(sockfd, data, MAX_BUFFER_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
+        if (bytesReceived < 0)
+        {
+            if (errno == EWOULDBLOCK)
+            {
+                if (retries < MAX_RETRIES)
+                {
+                    timeout *= 2;
+                    printf("No response. Now waiting for %d\n", timeout);
+                    continue;
+                }
+                else
+                {
+                    printf("No response after %d retries. Exiting.\n", MAX_RETRIES);
+                    exit(1);
+                }
+            }
+            else
+            {
+                perror("recvfrom");
+                exit(1);
+            }
+        }
+        else
+        {
+            printf("Received response: %s\n", data);
 
-        //     bytesSent += bytesSentThisTime;
-        //     sequenceNumber++;
-        // }
+            bytesSent += bytesSentThisTime;
+            sequenceNumber++;
+        }
     }
 
     fclose(file);
