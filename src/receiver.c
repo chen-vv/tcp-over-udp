@@ -115,7 +115,7 @@ void rrecv(unsigned short int myUDPport,
         }
 
         uint32_t seq_number;
-        memcpy(&seq_number, buffer, sizeof(HEADER_SIZE));
+        memcpy(&seq_number, buffer, HEADER_SIZE);
         send_ack(sockfd, &addr, addrlen, seq_number);
 
         char *data_buffer = buffer + HEADER_SIZE;
