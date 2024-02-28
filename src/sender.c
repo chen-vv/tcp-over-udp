@@ -119,7 +119,8 @@ void rsend(char* hostname,
         printf("Packet sent with sequence number: %d\nWaiting for acknowledgement...", sequenceNumber);
 
         // TODO: Wait for acknowledgement - set timeout again if needed?
-        int bytesReceived = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, (socklen_t) sizeof(addr));
+        socklen_t addrlen = sizeof(addr);
+        int bytesReceived = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, &addrlen);
         if (bytesReceived < 0) {
             if (errno == EWOULDBLOCK) {
                 if (retries < MAX_RETRIES) {
