@@ -107,6 +107,13 @@ void rrecv(unsigned short int myUDPport,
             exit(1);
         }
 
+        void *null_byte = memchr(buffer, '\0', bytes_received);
+        if (null_byte != NULL) {
+            bytes_received = (char*) null_byte - buffer;
+            fwrite(buffer, 1, bytes_received, file);
+            break;
+        }
+
         fwrite(buffer, 1, bytes_received, file);
         bytes_written += bytes_received;
 
