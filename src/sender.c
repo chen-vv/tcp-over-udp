@@ -59,8 +59,10 @@ void rsend(char* hostname,
 
     // https://stackoverflow.com/questions/13547721/udp-socket-set-timeout
     struct timeval tv;
+    int timeout = DEFAULT_TIMEOUT;
+    int retries = 0;
     tv.tv_sec = 0;
-    tv.tv_usec = 100 * USEC_PER_MILLISEC;
+    tv.tv_usec = timeout * USEC_PER_MILLISEC;
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
         perror("timeout");
@@ -119,12 +121,25 @@ void rsend(char* hostname,
         // TODO: Wait for acknowledgement - set timeout again if needed?
         int bytesReceived = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, (socklen_t) sizeof(addr));
         if (bytesReceived < 0) {
-            perror("recvfrom");
-            exit(1);
-        }
+            if (errno == EWOULDBLOCK) {
+                if (retries < MAX_RETRIES) {
+                    timeout *= 2;
+                    printf("No response. Now waiting for %d\n", timeout);
+                    continue;
+                } else {
+                    printf("No response after %d retries. Exiting.\n", MAX_RETRIES);
+                    exit(1);
+                }
+            } else {
+                perror("recvfrom");
+                exit(1);
+            }
+        } else {
+            printf("Received response: %s\n", buffer);
 
-        bytesSent += bytesSentThisTime;
-        sequenceNumber++;
+            bytesSent += bytesSentThisTime;
+            sequenceNumber++;
+        }
     }
 
     fclose(file);
