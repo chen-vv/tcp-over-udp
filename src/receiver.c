@@ -27,6 +27,7 @@
 
 #include <pthread.h>
 #include <errno.h>
+#include "include/udp.h"
 
 /**
  * @brief Sends an acknowledgment message to the sender.
@@ -99,9 +100,9 @@ void rrecv(unsigned short int myUDPport,
 
     while (1) {
         // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
-        char buffer[1024];
+        char buffer[MAX_BUFFER_SIZE];
         
-        int bytes_received = recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*) &addr, &addrlen);
+        int bytes_received = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr*) &addr, &addrlen);
         if (bytes_received < 0) {
             perror("recvfrom");
             exit(1);
