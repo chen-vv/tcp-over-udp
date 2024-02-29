@@ -101,6 +101,7 @@ void rrecv(unsigned short int myUDPport,
     time(&start);
 
     unsigned long long bytesWritten = 0;
+    int receivedLastPacket = FALSE;
 
     while (1)
     {
@@ -110,47 +111,48 @@ void rrecv(unsigned short int myUDPport,
 
         int bytesReceived = recvfrom(sockfd, packet, packetSize, 0, (struct sockaddr *)&addr, &addrlen);
 
-        fprintf(stdout, "Received %d bytes\n", bytesReceived);
-
         if (bytesReceived < 0)
         {
             perror("recvfrom");
             exit(1);
         }
 
+        fprintf(stdout, "Received %d bytes\n", bytesReceived);
+
         void *nullByte = memchr(packet, '\0', bytesReceived);
         if (nullByte != NULL)
         {
-            fprintf(stdout, "Received last packet\n");
-
-            // TODO: for debugging purposes, remove later
-            printf("Received bytes: ");
-            for (int i = 0; i < bytesReceived; ++i)
-            {
-                printf("%02X ", (unsigned char)packet[i]);
-            }
-            printf("\n");
-            // TODO: end debugging
-
-            if (fwrite(packet, 1, bytesReceived, file) != bytesReceived)
-            {
-                fprintf(stderr, "Error writing to file");
-            }
-
-            break;
+            receivedLastPacket = TRUE;
         }
 
-        uint32_t sequenceNumber;
-        memcpy(&sequenceNumber, packet, HEADER_SIZE);
+        // TODO: for debugging purposes, remove later
+        printf("Received bytes: ");
+        for (int i = 0; i < bytesReceived; ++i)
+        {
+            printf("%02X ", (unsigned char)packet[i]);
+        }
+        printf("\n");
 
-        fprintf(stdout, "Sending ACK for packet with sequence number: %d\n", sequenceNumber);
+        struct Header header;
+        memcpy(&header, packet, HEADER_SIZE);
 
-        send_ack(sockfd, &addr, addrlen, sequenceNumber);
+        fprintf(stdout, "Sending ACK for packet (%d bytes) with sequence number: %d\n", header.messageLength, header.sequenceNumber);
+
+        send_ack(sockfd, &addr, addrlen, header.sequenceNumber);
 
         char *dataBuffer = packet + HEADER_SIZE;
-        bytesReceived -= HEADER_SIZE;
 
-        fwrite(dataBuffer, 1, bytesReceived, file);
+        bytesReceived = bytesReceived - HEADER_SIZE;
+
+        if (receivedLastPacket == TRUE)
+        {
+            bytesReceived--; // Remove null terminator
+        }
+
+        fwrite(dataBuffer, 1, header.messageLength, file);
+
+        fprintf(stdout, "Wrote %d bytes to file\n", bytesReceived);
+
         bytesWritten += bytesReceived;
 
         time(&end);
@@ -159,6 +161,11 @@ void rrecv(unsigned short int myUDPport,
         if (writeRate > 0 && bytesWritten / seconds > writeRate)
         {
             sleep(1);
+        }
+
+        if (receivedLastPacket)
+        {
+            break;
         }
     }
 
