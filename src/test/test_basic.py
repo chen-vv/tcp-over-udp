@@ -36,7 +36,25 @@ def test_udp_file_transfer(file_size):
         send_data = send_file.read()
 
     assert len(send_data) == len(received_data)
+    assert send_data == received_data
 
+
+def test_udp_max_timeout():
+    sender_process = subprocess.Popen(
+        ["../../sender", "localhost", "12345", "send.txt", "123"]
+    )
+
+    sender_process.wait()
+    exit_code = sender_process.returncode
+
+    try:
+        max_retry_timeout = 1.5
+        sender_process.wait(timeout=max_retry_timeout)
+    except subprocess.TimeoutExpired:
+        sender_process.kill()
+        sender_process.wait()
+
+    assert exit_code == 1
 
 if __name__ == "__main__":
     pytest.main(["-v"])

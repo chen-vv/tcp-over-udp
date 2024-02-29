@@ -102,26 +102,35 @@ void rsend(char *hostname,
 
         fprintf(stdout, "Attempt %d, with %dms timeout\n", retries, timeout);
 
-        int bytesRead = fread(data, 1, sizeof(data), file);
-        if (bytesRead <= 0)
+        // TODO: Do we need to set this to read the next bytes from the file,
+        // after receiving an ACK?
+        if (retries == 0)
         {
-            // https://www.tutorialspoint.com/eof-getc-and-feof-in-c
-            if (feof(file))
+            int bytesRead = fread(data, 1, sizeof(data), file);
+            if (bytesRead <= 0)
             {
-                // End of file
-                break;
+                if (ferror(file))
+                {
+                    perror("fread");
+                    exit(1);
+                }
+
+                // https://www.tutorialspoint.com/eof-getc-and-feof-in-c
+                if (feof(file))
+                {
+                    // End of file
+                    break;
+                }
             }
-            perror("fread");
-            exit(1);
+
+            header.sequenceNumber = sequenceNumber;
+            header.messageLength = bytesRead;
+
+            memcpy(packet, &header, HEADER_SIZE);
+            memcpy(packet + HEADER_SIZE, data, bytesRead); // Include null terminator
+
+            packet[HEADER_SIZE + bytesRead] = '\0';
         }
-
-        header.sequenceNumber = sequenceNumber;
-        header.messageLength = bytesRead;
-
-        memcpy(packet, &header, HEADER_SIZE);
-        memcpy(packet + HEADER_SIZE, data, bytesRead); // Include null terminator
-
-        packet[HEADER_SIZE + bytesRead] = '\0';
 
         fprintf(stdout, "Sending packet with sequence number: %d\n", sequenceNumber);
 
@@ -146,7 +155,6 @@ void rsend(char *hostname,
                     timeout *= 2;
                     retries++;
 
-                    printf("Timeout.\n");
                     continue;
                 }
                 else
@@ -163,12 +171,16 @@ void rsend(char *hostname,
         }
         else
         {
-            // Convert received data to uint32_t
             uint32_t receivedSequenceNumber;
             memcpy(&receivedSequenceNumber, ack, MAX_ACK_SIZE);
 
             if (receivedSequenceNumber != sequenceNumber)
             {
+                timeout *= 2;
+                retries++;
+
+                printf("Received ACK for wrong packet. Retrying.\n");
+                continue;
             }
 
             // TODO: for debugging purposes, remove later
