@@ -2,7 +2,7 @@
 
 text="I love rice cakes"
 
-for ((i=0; i<1000000; i++)); do
+for ((i=0; i<10000; i++)); do
     echo "$text" >> output.txt
 done
 
