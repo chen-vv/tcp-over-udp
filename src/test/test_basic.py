@@ -10,7 +10,7 @@ def clear_received_file():
         pass
 
 
-@pytest.mark.parametrize("send_filename", ["send2.txt", "send2.txt"])
+@pytest.mark.parametrize("send_filename", ["send1.txt", "send2.txt"])
 def test_udp_file_transfer(send_filename):
     with open("received.txt", "r") as received_file:
         assert received_file.read() == ""
@@ -18,10 +18,10 @@ def test_udp_file_transfer(send_filename):
     with open(send_filename, "r") as send_file:
         send_data = send_file.read()
 
-    receiver_process = subprocess.Popen(["../../receiver", "12345", "received.txt"])
+    receiver_process = subprocess.Popen(["../../receiver", "12345", "received.txt", "0"])
 
     sender_process = subprocess.Popen(
-        ["../../sender", "localhost", "12345", send_filename, str(os.path.getsize(send_filename))]
+        ["../../sender", "localhost", "12345", send_filename, "2001"]
     )
 
     print(str(len(send_data)))

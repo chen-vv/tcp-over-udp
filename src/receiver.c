@@ -139,6 +139,10 @@ void rrecv(unsigned short int myUDPport,
         bytesWritten += bytesReceived;
         time(&end);
         double seconds = difftime(end, start);
+
+        // TODO: implement flow control via sliding window mechanism
+        //
+        // If writeRate exceeded, signal to sender to slow down
         if (writeRate > 0 && bytesWritten / seconds > writeRate)
         {
             sleep(1);
@@ -162,17 +166,15 @@ int main(int argc, char **argv)
     char *destinationFile = NULL;
     unsigned long long int writeRate;
 
-    if (argc != 3)
+    if (argc != 4)
     {
-        fprintf(stderr, "usage: %s UDP_port filename_to_write\n\n", argv[0]);
+        fprintf(stderr, "usage: %s UDP_port filename_to_write writeRate\n\n", argv[0]);
         exit(1);
     }
 
     udpPort = (unsigned short int)atoi(argv[1]);
     destinationFile = argv[2];
-
-    // TODO: pass in writeRate from command line
-    writeRate = 0;
+    writeRate = (unsigned long long int)atoll(argv[3]);
 
     rrecv(udpPort, destinationFile, writeRate);
 
