@@ -79,7 +79,7 @@ void rsend(char *hostname,
     }
 
     unsigned long long bytesSent = 0;
-    char data[MAX_BUFFER_SIZE];
+    char packet_data[MAX_BUFFER_SIZE];
     char packet[MAX_BUFFER_SIZE + HEADER_SIZE];
     struct Header header;
     int sequenceNumber = 1;
@@ -89,8 +89,6 @@ void rsend(char *hostname,
     int retries = 0;
     tv.tv_sec = 0;
     tv.tv_usec = timeout * USEC_PER_MILLISEC;
-
-    int bytesRead = 0;
 
     while (bytesSent < bytesToTransfer)
     {
@@ -106,7 +104,7 @@ void rsend(char *hostname,
         // First packet, with no retries yet
         if (retries == 0)
         {
-            bytesRead = fread(data, 1, sizeof(data), file);
+            int bytesRead = fread(packet_data, 1, sizeof(packet_data), file);
             if (bytesRead < 0)
             {
                 perror("fread");
@@ -114,7 +112,7 @@ void rsend(char *hostname,
             }
 
             // Copy in packet data
-            memcpy(packet + HEADER_SIZE, data, bytesRead);
+            memcpy(packet + HEADER_SIZE, packet_data, bytesRead);
 
             // Add header to packet
             header.sequenceNumber = sequenceNumber;
@@ -130,10 +128,10 @@ void rsend(char *hostname,
             exit(1);
         }
 
+        // Check for ACK with timeout
         socklen_t addrlen = sizeof(addr);
         char ack[MAX_ACK_SIZE];
 
-        // Check for ACK with timeout
         int bytesReceived = recvfrom(sockfd, ack, MAX_ACK_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
         if (bytesReceived < 0)
         {
@@ -169,7 +167,7 @@ void rsend(char *hostname,
             continue;
         }
 
-        bytesSent += bytesRead;
+        bytesSent += (bytesSentThisTime - HEADER_SIZE);
         sequenceNumber++;
         retries = 0;
         timeout = DEFAULT_TIMEOUT;
@@ -177,9 +175,6 @@ void rsend(char *hostname,
     }
 
     // Send null terminating packet
-    header.sequenceNumber = sequenceNumber;
-    header.messageLength = bytesRead;
-    memcpy(packet, &header, HEADER_SIZE);
     packet[HEADER_SIZE] = '\0';
     int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + MAX_BUFFER_SIZE, 0, (struct sockaddr *)&addr, sizeof(addr));
     if (bytesSentThisTime < 0)

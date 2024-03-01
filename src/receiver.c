@@ -124,7 +124,6 @@ void rrecv(unsigned short int myUDPport,
         struct Header header;
         memcpy(&header, packet, HEADER_SIZE);
         send_ack(sockfd, &addr, addrlen, header.sequenceNumber);
-        printf("Received %d bytes\n", bytesReceived);
 
         char packet_data[header.messageLength];
         memcpy(packet_data, packet + HEADER_SIZE, header.messageLength);
@@ -132,7 +131,6 @@ void rrecv(unsigned short int myUDPport,
         char *nullByte = memchr(packet_data, '\0', header.messageLength);
         if (nullByte != NULL)
         {
-            printf("GOT NULL\n");
             break;
         }
 
