@@ -1,8 +1,10 @@
 import os
+import queue
 import subprocess
+import threading
 import time
 
-# import pytest
+import pytest
 
 CONVERGENCE_THRESHOLD = 0.1  # 10% threshold for fairness
 MAX_RTT_COUNT = 100
@@ -11,9 +13,10 @@ TRANSFER_BYTES = os.path.getsize(TEST_FILENAME)
 HOSTNAME = "localhost"
 
 
-def start_and_wait_processes():
-    receiver1 = subprocess.Popen(["../../receiver", str(12345), "received1.txt", str(0)])
-    sender1 = subprocess.Popen(
+def start1(result_queue):
+    start = time.time()
+    receiver = subprocess.Popen(["../../receiver", str(12345), "received1.txt", str(0)])
+    sender = subprocess.Popen(
         [
             "../../sender",
             HOSTNAME,
@@ -22,12 +25,16 @@ def start_and_wait_processes():
             str(TRANSFER_BYTES),
         ]
     )
+    receiver.wait()
+    sender.wait()
+    end = time.time()
+    result_queue.put(end - start)
 
-    time.sleep(0.001)
 
-    receiver2 = subprocess.Popen(["../../receiver", str(12346), "received2.txt", str(0)])
-
-    sender2 = subprocess.Popen(
+def start2(result_queue):
+    start = time.time()
+    receiver = subprocess.Popen(["../../receiver", str(12346), "received2.txt", str(0)])
+    sender = subprocess.Popen(
         [
             "../../sender",
             HOSTNAME,
@@ -36,29 +43,38 @@ def start_and_wait_processes():
             str(TRANSFER_BYTES),
         ]
     )
-
-    receiver1.wait()
-    receiver2.wait()
-    sender1.wait()
-    sender2.wait()
+    receiver.wait()
+    sender.wait()
+    end = time.time()
+    result_queue.put(end - start)
 
 
 def test_fairness():
-    start = time.time()
-    start_and_wait_processes()
-    end = time.time()
+    for _ in range(5):
+        result_queue = queue.Queue()
 
-    throughput1 = TRANSFER_BYTES / (end - start)
-    throughput2 = TRANSFER_BYTES / (end - start)
-    throughputs = (throughput1, throughput2)
+        thread1 = threading.Thread(target=start1, args=(result_queue,))
+        thread2 = threading.Thread(target=start2, args=(result_queue,))
 
-    fairness_ratio = max(throughputs) / min(throughputs)
-    print(fairness_ratio)
+        thread1.start()
+        thread2.start()
 
-    assert fairness_ratio <= 1 + CONVERGENCE_THRESHOLD
-    assert fairness_ratio >= 1 - CONVERGENCE_THRESHOLD
+        thread1.join()
+        thread2.join()
+
+        time1 = result_queue.get()
+        time2 = result_queue.get()
+
+        throughput1 = TRANSFER_BYTES / time1
+        throughput2 = TRANSFER_BYTES / time2
+        throughputs = (throughput1, throughput2)
+
+        fairness_ratio = max(throughputs) / min(throughputs)
+        print(fairness_ratio)
+
+        assert fairness_ratio <= 1 + CONVERGENCE_THRESHOLD
+        assert fairness_ratio >= 1 - CONVERGENCE_THRESHOLD
 
 
 if __name__ == "__main__":
-    test_fairness()
-    # pytest.main(["-v"])
+    pytest.main(["-v"])
