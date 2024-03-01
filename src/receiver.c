@@ -156,6 +156,8 @@ void rrecv(unsigned short int myUDPport,
 /** @brief UDP receiver entrypoint.
  *
  *  TODO: Implement main & write comments
+ *  writeRate is an optional parameter that is passed in via the command line.
+ *  By default, writeRate is set to 0.
  *
  *  @return Should not return
  */
@@ -166,15 +168,23 @@ int main(int argc, char **argv)
     char *destinationFile = NULL;
     unsigned long long int writeRate;
 
-    if (argc != 4)
+    if (argc != 3 && argc != 4)
     {
-        fprintf(stderr, "usage: %s UDP_port filename_to_write writeRate\n\n", argv[0]);
+        fprintf(stderr, "usage: %s UDP_port filename_to_write [writeRate]\n\n", argv[0]);
         exit(1);
     }
 
     udpPort = (unsigned short int)atoi(argv[1]);
     destinationFile = argv[2];
-    writeRate = (unsigned long long int)atoll(argv[3]);
+
+    if (argc == 4)
+    {
+        writeRate = (unsigned long long int)atoll(argv[3]);
+    }
+    else
+    {
+        writeRate = 0;
+    }
 
     rrecv(udpPort, destinationFile, writeRate);
 
