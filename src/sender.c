@@ -21,7 +21,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/time.h>
-#include <sys/stat.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -31,19 +30,54 @@
 #include <errno.h>
 #include "include/udp.h"
 
-/**
- * @brief Get the File Size object
- *
- * @param filename
- * @return long long The size of the file in bytes
- */
-long long getFileSize(const char *filename)
+// TODO: comments
+void checkAck(struct sockaddr_in addr, int sockfd, int *sequenceNumber,
+              unsigned long long *bytesSent, int bytesSentThisTime, int *timeout,
+              int *retries, struct timeval *tv)
 {
-    struct stat st;
-    if (stat(filename, &st) == 0)
-        return st.st_size;
-    else
-        return -1;
+    socklen_t addrlen = sizeof(addr);
+    char ack[MAX_ACK_SIZE];
+
+    int bytesReceived = recvfrom(sockfd, ack, MAX_ACK_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
+    if (bytesReceived < 0)
+    {
+        if (errno == EWOULDBLOCK)
+        {
+            if (*retries < MAX_RETRIES)
+            {
+                *timeout *= 2;
+                (*retries)++;
+
+                return;
+            }
+            else
+            {
+                perror("max timeout reached");
+                exit(1);
+            }
+        }
+        else
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+    }
+
+    uint32_t receivedSequenceNumber;
+    memcpy(&receivedSequenceNumber, ack, MAX_ACK_SIZE);
+
+    if (receivedSequenceNumber != *sequenceNumber)
+    {
+        *timeout *= 2;
+        (*retries)++;
+        return;
+    }
+
+    *bytesSent += (bytesSentThisTime - HEADER_SIZE);
+    (*sequenceNumber)++;
+    *retries = 0;
+    *timeout = DEFAULT_TIMEOUT;
+    tv->tv_usec = *timeout * USEC_PER_MILLISEC;
 }
 
 /** @brief Sends the first bytesToTransfer bytes of the file
@@ -92,11 +126,6 @@ void rsend(char *hostname,
     {
         perror("fopen");
         exit(1);
-    }
-
-    if (getFileSize(filename) < bytesToTransfer)
-    {
-        bytesToTransfer = getFileSize(filename);
     }
 
     unsigned long long bytesSent = 0;
@@ -149,50 +178,7 @@ void rsend(char *hostname,
             exit(1);
         }
 
-        // Check for ACK with timeout
-        socklen_t addrlen = sizeof(addr);
-        char ack[MAX_ACK_SIZE];
-
-        int bytesReceived = recvfrom(sockfd, ack, MAX_ACK_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
-        if (bytesReceived < 0)
-        {
-            if (errno == EWOULDBLOCK)
-            {
-                if (retries < MAX_RETRIES)
-                {
-                    timeout *= 2;
-                    retries++;
-
-                    continue;
-                }
-                else
-                {
-                    perror("max timeout reached");
-                    exit(1);
-                }
-            }
-            else
-            {
-                perror("recvfrom");
-                exit(1);
-            }
-        }
-
-        uint32_t receivedSequenceNumber;
-        memcpy(&receivedSequenceNumber, ack, MAX_ACK_SIZE);
-
-        if (receivedSequenceNumber != sequenceNumber)
-        {
-            timeout *= 2;
-            retries++;
-            continue;
-        }
-
-        bytesSent += (bytesSentThisTime - HEADER_SIZE);
-        sequenceNumber++;
-        retries = 0;
-        timeout = DEFAULT_TIMEOUT;
-        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+        checkAck(addr, sockfd, &sequenceNumber, &bytesSent, bytesSentThisTime, &timeout, &retries, &tv);
     }
 
     // Send null terminating packet
@@ -203,6 +189,8 @@ void rsend(char *hostname,
         perror("sendto");
         exit(1);
     }
+
+    checkAck(addr, sockfd, &sequenceNumber, &bytesSent, bytesSentThisTime, &timeout, &retries, &tv);
 
     fclose(file);
     close(sockfd);
