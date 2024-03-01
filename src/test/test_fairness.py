@@ -3,7 +3,7 @@ import socket
 import subprocess
 import time
 
-import pytest
+# import pytest
 
 NUM_INSTANCES = 2
 CONVERGENCE_THRESHOLD = 0.1  # 10% threshold for fairness
@@ -11,8 +11,15 @@ MAX_RTT_COUNT = 100
 
 
 def start_instances():
+    receiver_procs = []
     sender_procs = []
+
     for i in range(NUM_INSTANCES):
+        udp_port = 5000 + i
+        filename_to_write = f"received_file_{i}.txt"
+        receiver_proc = subprocess.Popen(["../../receiver", str(udp_port), filename_to_write])
+        receiver_procs.append(receiver_proc)
+
         receiver_hostname = "localhost"
         receiver_port = 5000 + i
         filename = "send1.txt"
@@ -27,14 +34,6 @@ def start_instances():
             ]
         )
         sender_procs.append(sender_proc)
-
-    # receivers
-    receiver_procs = []
-    for i in range(NUM_INSTANCES):
-        udp_port = 5000 + i
-        filename_to_write = f"received_file_{i}.txt"
-        receiver_proc = subprocess.Popen(["../../receiver", str(udp_port), filename_to_write])
-        receiver_procs.append(receiver_proc)
 
     return sender_procs, receiver_procs
 
