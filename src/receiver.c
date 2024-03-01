@@ -41,7 +41,11 @@
 void send_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t sequenceNumber)
 {
     // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
-    sendto(sockfd, &sequenceNumber, sizeof(uint32_t), 0, (struct sockaddr *)addr, addrlen);
+    if (sendto(sockfd, &sequenceNumber, sizeof(uint32_t), 0, (struct sockaddr *)addr, addrlen) == -1)
+    {
+        perror("sendto");
+        exit(EXIT_FAILURE);
+    }
 }
 
 /** @brief Writes the bytes received on port myUDPport to a file
@@ -94,14 +98,11 @@ void rrecv(unsigned short int myUDPport,
         exit(1);
     }
 
-    fprintf(stdout, "Receiver ready. Waiting for bytes...\n");
-
     // https://www.geeksforgeeks.org/time-function-in-c/
     time_t start, end;
     time(&start);
 
     unsigned long long bytesWritten = 0;
-    int receivedLastPacket = FALSE;
 
     while (1)
     {
@@ -110,62 +111,39 @@ void rrecv(unsigned short int myUDPport,
         char packet[packetSize];
 
         int bytesReceived = recvfrom(sockfd, packet, packetSize, 0, (struct sockaddr *)&addr, &addrlen);
-
         if (bytesReceived < 0)
         {
             perror("recvfrom");
             exit(1);
         }
-
-        fprintf(stdout, "Received %d bytes\n", bytesReceived);
-
-        void *nullByte = memchr(packet, '\0', bytesReceived);
-        if (nullByte != NULL)
+        else if (bytesReceived == 0)
         {
-            receivedLastPacket = TRUE;
+            continue;
         }
-
-        // TODO: for debugging purposes, remove later
-        printf("Received bytes: ");
-        for (int i = 0; i < bytesReceived; ++i)
-        {
-            printf("%02X ", (unsigned char)packet[i]);
-        }
-        printf("\n");
 
         struct Header header;
         memcpy(&header, packet, HEADER_SIZE);
-
-        fprintf(stdout, "Sending ACK for packet (%d bytes) with sequence number: %d\n", header.messageLength, header.sequenceNumber);
-
         send_ack(sockfd, &addr, addrlen, header.sequenceNumber);
+        printf("Received %d bytes\n", bytesReceived);
 
-        char *dataBuffer = packet + HEADER_SIZE;
+        char packet_data[header.messageLength];
+        memcpy(packet_data, packet + HEADER_SIZE, header.messageLength);
 
-        bytesReceived = bytesReceived - HEADER_SIZE;
-
-        if (receivedLastPacket == TRUE)
+        char *nullByte = memchr(packet_data, '\0', header.messageLength);
+        if (nullByte != NULL)
         {
-            bytesReceived--; // Remove null terminator
+            printf("GOT NULL\n");
+            break;
         }
 
-        fwrite(dataBuffer, 1, header.messageLength, file);
-
-        fprintf(stdout, "Wrote %d bytes to file\n", bytesReceived);
+        fwrite(packet_data, 1, header.messageLength, file);
 
         bytesWritten += bytesReceived;
-
         time(&end);
-
         double seconds = difftime(end, start);
         if (writeRate > 0 && bytesWritten / seconds > writeRate)
         {
             sleep(1);
-        }
-
-        if (receivedLastPacket)
-        {
-            break;
         }
     }
 
@@ -197,8 +175,6 @@ int main(int argc, char **argv)
 
     // TODO: pass in writeRate from command line
     writeRate = 0;
-
-    fprintf(stdout, "Initializing receiver to listen on port %d and write to %s\n", udpPort, destinationFile);
 
     rrecv(udpPort, destinationFile, writeRate);
 

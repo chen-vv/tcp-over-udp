@@ -90,6 +90,8 @@ void rsend(char *hostname,
     tv.tv_sec = 0;
     tv.tv_usec = timeout * USEC_PER_MILLISEC;
 
+    int bytesRead = 0;
+
     while (bytesSent < bytesToTransfer)
     {
         // https://stackoverflow.com/questions/13547721/udp-socket-set-timeout
@@ -98,44 +100,30 @@ void rsend(char *hostname,
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
         {
             perror("timeout");
+            exit(1);
         }
 
-        fprintf(stdout, "Attempt %d, with %dms timeout\n", retries, timeout);
-
-        // TODO: Do we need to set this to read the next bytes from the file,
-        // after receiving an ACK?
+        // First packet, with no retries yet
         if (retries == 0)
         {
-            int bytesRead = fread(data, 1, sizeof(data), file);
-            if (bytesRead <= 0)
+            bytesRead = fread(data, 1, sizeof(data), file);
+            if (bytesRead < 0)
             {
-                if (ferror(file))
-                {
-                    perror("fread");
-                    exit(1);
-                }
-
-                // https://www.tutorialspoint.com/eof-getc-and-feof-in-c
-                if (feof(file))
-                {
-                    // End of file
-                    break;
-                }
+                perror("fread");
+                exit(1);
             }
 
+            // Copy in packet data
+            memcpy(packet + HEADER_SIZE, data, bytesRead);
+
+            // Add header to packet
             header.sequenceNumber = sequenceNumber;
             header.messageLength = bytesRead;
-
             memcpy(packet, &header, HEADER_SIZE);
-            memcpy(packet + HEADER_SIZE, data, bytesRead); // Include null terminator
-
-            packet[HEADER_SIZE + bytesRead] = '\0';
         }
 
-        fprintf(stdout, "Sending packet with sequence number: %d\n", sequenceNumber);
-
         // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
-        int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + strlen(data), 0, (struct sockaddr *)&addr, sizeof(addr));
+        int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + MAX_BUFFER_SIZE, 0, (struct sockaddr *)&addr, sizeof(addr));
         if (bytesSentThisTime < 0)
         {
             perror("sendto");
@@ -145,7 +133,8 @@ void rsend(char *hostname,
         socklen_t addrlen = sizeof(addr);
         char ack[MAX_ACK_SIZE];
 
-        int bytesReceived = recvfrom(sockfd, ack, MAX_BUFFER_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
+        // Check for ACK with timeout
+        int bytesReceived = recvfrom(sockfd, ack, MAX_ACK_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
         if (bytesReceived < 0)
         {
             if (errno == EWOULDBLOCK)
@@ -159,7 +148,7 @@ void rsend(char *hostname,
                 }
                 else
                 {
-                    printf("No response after %d retries. Exiting.\n", MAX_RETRIES);
+                    perror("max timeout reached");
                     exit(1);
                 }
             }
@@ -169,32 +158,34 @@ void rsend(char *hostname,
                 exit(1);
             }
         }
-        else
+
+        uint32_t receivedSequenceNumber;
+        memcpy(&receivedSequenceNumber, ack, MAX_ACK_SIZE);
+
+        if (receivedSequenceNumber != sequenceNumber)
         {
-            uint32_t receivedSequenceNumber;
-            memcpy(&receivedSequenceNumber, ack, MAX_ACK_SIZE);
-
-            if (receivedSequenceNumber != sequenceNumber)
-            {
-                timeout *= 2;
-                retries++;
-
-                printf("Received ACK for wrong packet. Retrying.\n");
-                continue;
-            }
-
-            // TODO: for debugging purposes, remove later
-            printf("Received ACK: %u\n", sequenceNumber);
-            // TODO: end debugging
-
-            bytesSent += bytesSentThisTime;
-            sequenceNumber++;
-            retries = 0;
-            timeout = DEFAULT_TIMEOUT;
-            tv.tv_usec = timeout * USEC_PER_MILLISEC;
-
-            printf("%d bytes sent\n", bytesSentThisTime);
+            timeout *= 2;
+            retries++;
+            continue;
         }
+
+        bytesSent += bytesRead;
+        sequenceNumber++;
+        retries = 0;
+        timeout = DEFAULT_TIMEOUT;
+        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+    }
+
+    // Send null terminating packet
+    header.sequenceNumber = sequenceNumber;
+    header.messageLength = bytesRead;
+    memcpy(packet, &header, HEADER_SIZE);
+    packet[HEADER_SIZE] = '\0';
+    int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + MAX_BUFFER_SIZE, 0, (struct sockaddr *)&addr, sizeof(addr));
+    if (bytesSentThisTime < 0)
+    {
+        perror("sendto");
+        exit(1);
     }
 
     fclose(file);
@@ -226,8 +217,6 @@ int main(int argc, char **argv)
     hostUDPport = (unsigned short int)atoi(argv[2]);
     filename = argv[3];
     bytesToTransfer = atoll(argv[4]);
-
-    fprintf(stdout, "Initializing sender to transfer %s (%lld bytes) to %s:%d\n", filename, bytesToTransfer, hostname, hostUDPport);
 
     rsend(hostname, hostUDPport, filename, bytesToTransfer);
 
