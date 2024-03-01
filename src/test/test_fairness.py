@@ -1,87 +1,80 @@
 import os
-import socket
+import queue
 import subprocess
+import threading
 import time
 
-# import pytest
+import pytest
 
-NUM_INSTANCES = 2
 CONVERGENCE_THRESHOLD = 0.1  # 10% threshold for fairness
 MAX_RTT_COUNT = 100
+TEST_FILENAME = "output.txt"
+TRANSFER_BYTES = os.path.getsize(TEST_FILENAME)
+HOSTNAME = "localhost"
 
 
-def start_instances():
-    receiver_procs = []
-    sender_procs = []
-
-    for i in range(NUM_INSTANCES):
-        udp_port = 5000 + i
-        filename_to_write = f"received_file_{i}.txt"
-        receiver_proc = subprocess.Popen(["../../receiver", str(udp_port), filename_to_write])
-        receiver_procs.append(receiver_proc)
-
-        receiver_hostname = "localhost"
-        receiver_port = 5000 + i
-        filename = "send1.txt"
-        bytes_to_transfer = os.path.getsize("send1.txt")
-        sender_proc = subprocess.Popen(
-            [
-                "../../sender",
-                receiver_hostname,
-                str(receiver_port),
-                filename,
-                str(bytes_to_transfer),
-            ]
-        )
-        sender_procs.append(sender_proc)
-
-    return sender_procs, receiver_procs
+def start1(result_queue):
+    start = time.time()
+    receiver = subprocess.Popen(["../../receiver", str(12345), "received1.txt", str(0)])
+    sender = subprocess.Popen(
+        [
+            "../../sender",
+            HOSTNAME,
+            str(12345),
+            TEST_FILENAME,
+            str(TRANSFER_BYTES),
+        ]
+    )
+    receiver.wait()
+    sender.wait()
+    end = time.time()
+    result_queue.put(end - start)
 
 
-def measure_throughput(udp_port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(("localhost", udp_port))
-    total_bytes_received = 0
-    start_time = time.time()
-    rtt_count = 0
-
-    while True:
-        data, _ = s.recvfrom(1024)
-        total_bytes_received += len(data)
-        rtt_count += 1
-
-        if rtt_count >= MAX_RTT_COUNT:
-            break
-
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    throughput = total_bytes_received / elapsed_time
-    return throughput
+def start2(result_queue):
+    start = time.time()
+    receiver = subprocess.Popen(["../../receiver", str(12346), "received2.txt", str(0)])
+    sender = subprocess.Popen(
+        [
+            "../../sender",
+            HOSTNAME,
+            str(12346),
+            TEST_FILENAME,
+            str(TRANSFER_BYTES),
+        ]
+    )
+    receiver.wait()
+    sender.wait()
+    end = time.time()
+    result_queue.put(end - start)
 
 
 def test_fairness():
-    sender_procs, receiver_procs = start_instances()
+    for _ in range(5):
+        result_queue = queue.Queue()
 
-    time.sleep(0.5)
+        thread1 = threading.Thread(target=start1, args=(result_queue,))
+        thread2 = threading.Thread(target=start2, args=(result_queue,))
 
-    throughputs = []
-    for i in range(NUM_INSTANCES):
-        udp_port = 5000 + i
-        throughput = measure_throughput(udp_port)
-        throughputs.append(throughput)
+        thread1.start()
+        thread2.start()
 
-    fairness_ratio = max(throughputs) / min(throughputs)
-    print(fairness_ratio)
+        thread1.join()
+        thread2.join()
 
-    assert fairness_ratio <= 1 + CONVERGENCE_THRESHOLD
-    assert fairness_ratio >= 1 - CONVERGENCE_THRESHOLD
+        time1 = result_queue.get()
+        time2 = result_queue.get()
 
-    for sender_proc in sender_procs:
-        sender_proc.terminate()
-    for receiver_proc in receiver_procs:
-        receiver_proc.terminate()
+        throughput1 = TRANSFER_BYTES / time1
+        throughput2 = TRANSFER_BYTES / time2
+        throughputs = (throughput1, throughput2)
+
+        fairness_ratio = max(throughputs) / min(throughputs)
+        print(fairness_ratio)
+
+        assert fairness_ratio <= 1 + CONVERGENCE_THRESHOLD
+        assert fairness_ratio >= 1 - CONVERGENCE_THRESHOLD
 
 
 if __name__ == "__main__":
-    test_fairness()
-    # pytest.main(["-v"])
+    pytest.main(["-v"])

@@ -4,3 +4,5 @@ sender
 __pycache__/
 .pytest_cache/
 output.txt
+received1.txt
+received2.txt
