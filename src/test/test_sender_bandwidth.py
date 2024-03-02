@@ -14,7 +14,6 @@ def measure_bandwidth():
             "europa.eomielan-194296.elec331sp2024.emulab.net",
             "12345",
             "src/test/output.txt",
-            "123",
         ]
     )
     sender_process.wait()

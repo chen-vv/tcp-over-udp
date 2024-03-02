@@ -18,7 +18,7 @@ def test_udp_file_transfer(send_filename):
     with open(send_filename, "r") as send_file:
         send_data = send_file.read()
 
-    receiver_process = subprocess.Popen(["../../receiver", "12345", "received.txt", "0"])
+    receiver_process = subprocess.Popen(["../../receiver", "12345", "received.txt"])
 
     sender_process = subprocess.Popen(
         ["../../sender", "localhost", "12345", send_filename, str(os.path.getsize(send_filename))]

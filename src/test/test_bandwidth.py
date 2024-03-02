@@ -3,7 +3,7 @@ import subprocess
 import time
 
 sender_command = "../../sender localhost 12345 send2.txt 1000"
-receiver_command = "../../receiver 12345 received.txt 0"
+receiver_command = "../../receiver 12345 received.txt"
 
 
 def run_command(command):

@@ -15,7 +15,7 @@ HOSTNAME = "localhost"
 
 def start1(result_queue):
     start = time.time()
-    receiver = subprocess.Popen(["../../receiver", str(12345), "received1.txt", str(0)])
+    receiver = subprocess.Popen(["../../receiver", str(12345), "received1.txt"])
     sender = subprocess.Popen(
         [
             "../../sender",
@@ -33,7 +33,7 @@ def start1(result_queue):
 
 def start2(result_queue):
     start = time.time()
-    receiver = subprocess.Popen(["../../receiver", str(12346), "received2.txt", str(0)])
+    receiver = subprocess.Popen(["../../receiver", str(12346), "received2.txt"])
     sender = subprocess.Popen(
         [
             "../../sender",
