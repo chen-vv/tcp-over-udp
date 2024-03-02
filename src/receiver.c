@@ -166,6 +166,7 @@ int main(int argc, char **argv)
     char *destinationFile = NULL;
     unsigned long long int writeRate;
 
+    // TODO: make writeRate optional, with default = 0
     if (argc != 4)
     {
         fprintf(stderr, "usage: %s UDP_port filename_to_write writeRate\n\n", argv[0]);
