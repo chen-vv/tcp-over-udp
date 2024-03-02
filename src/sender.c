@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <pthread.h>
 #include <errno.h>
@@ -50,44 +51,55 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 {
     printf("Waiting for SYN packet\n");
 
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(sockfd, &readfds);
-
-    struct timeval timeout;
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;
+    // set socket to non-blocking mode
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    flags |= O_NONBLOCK;
+    if (fcntl(sockfd, F_SETFL, flags) == -1)
+    {
+        perror("fcntl - F_SETFL");
+        exit(1);
+    }
 
     while (1)
     {
-        int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
-        if (activity == -1)
+        char syn;
+        ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(char), MSG_DONTWAIT, (struct sockaddr *)addr, &addrlen);
+        if (bytes_received > 0)
         {
-            perror("select");
+            printf("Received SYN packet\n");
             break;
         }
-        else if (activity == 0)
+        else if (bytes_received == -1)
         {
-            printf("Zero activity\n");
-            continue;
-        }
-        else
-        {
-            char syn;
-            ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, &addrlen);
-            if (bytes_received < 0)
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                perror("recvfrom");
+                // no syn yet
+                continue;
             }
             else
             {
-                printf("Received SYN packet\n");
-                break;
+                perror("recvfrom");
+                exit(1);
             }
         }
     }
+
+    // revert socket to blocking mode
+    flags &= ~O_NONBLOCK;
+    if (fcntl(sockfd, F_SETFL, flags) == -1)
+    {
+        perror("fcntl - F_SETFL");
+        exit(EXIT_FAILURE);
+    }
+
+    // send syn-ack
     char syn = 0;
-    sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
+    ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
+    if (size == -1)
+    {
+        perror("sendto");
+        exit(1);
+    }
 }
 
 // TODO: comments

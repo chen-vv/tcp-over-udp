@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <time.h>
+#include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -48,12 +49,52 @@ void send_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t 
     }
 }
 
-void syn_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
+void send_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 {
     // tell sender its ok to start, SYN packet
-    char syn = 0;
-    ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
-    printf("Size sent %zd \n", size);
+
+    // set socket to non-blocking mode
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    flags |= O_NONBLOCK;
+    if (fcntl(sockfd, F_SETFL, flags) == -1)
+    {
+        perror("fcntl - F_SETFL");
+        exit(1);
+    }
+
+    while (1)
+    {
+        char syn = 0;
+        ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
+        printf("Size sent %zd \n", size);
+
+        ssize_t recv_size = recvfrom(sockfd, &syn, sizeof(char), MSG_DONTWAIT, (struct sockaddr *)addr, &addrlen);
+        if (recv_size > 0)
+        {
+            break;
+        }
+        else if (recv_size == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                // syn-ack not received yet
+                continue;
+            }
+            else
+            {
+                perror("recvfrom");
+                exit(1);
+            }
+        }
+    }
+
+    // revert socket to blocking mode
+    flags &= ~O_NONBLOCK;
+    if (fcntl(sockfd, F_SETFL, flags) == -1)
+    {
+        perror("fcntl - F_SETFL");
+        exit(1);
+    }
 }
 
 /** @brief Writes the bytes received on port myUDPport to a file
@@ -112,7 +153,7 @@ void rrecv(unsigned short int myUDPport,
 
     unsigned long long bytesWritten = 0;
 
-    syn_ack(sockfd, &addr, addrlen);
+    send_syn(sockfd, &addr, addrlen);
 
     while (1)
     {
