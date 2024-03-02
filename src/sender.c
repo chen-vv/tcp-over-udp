@@ -51,23 +51,66 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 {
     printf("Waiting for SYN packet\n");
 
-    // set socket to non-blocking mode
-    int flags = fcntl(sockfd, F_GETFL, 0);
-    flags |= O_NONBLOCK;
-    if (fcntl(sockfd, F_SETFL, flags) == -1)
-    {
-        perror("fcntl - F_SETFL");
-        exit(1);
-    }
+    // // set socket to non-blocking mode
+    // int flags = fcntl(sockfd, F_GETFL, 0);
+    // flags |= O_NONBLOCK;
+    // if (fcntl(sockfd, F_SETFL, flags) == -1)
+    // {
+    //     perror("fcntl - F_SETFL");
+    //     exit(1);
+    // }
+
+    struct timeval tv;
+    int timeout = SYN_ACK_TIMEOUT_MILLISEC;
+    tv.tv_sec = 0;
 
     while (1)
     {
-        char syn;
-        ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(char), MSG_DONTWAIT, (struct sockaddr *)addr, &addrlen);
+        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+        {
+            perror("timeout");
+            exit(1);
+        }
+
+        struct Syn syn;
+        ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, &addrlen);
         if (bytes_received > 0)
         {
-            printf("Received SYN packet\n");
-            break;
+            printf("Received SYN packet with seq: %d\n", syn.sequenceNumber);
+
+            // Reply with syn-ack
+            struct SynAck syn_ack;
+            syn_ack.sequenceNumber = 777;
+            syn_ack.ackNumber = syn.sequenceNumber + 1;
+
+            while (TRUE)
+            {
+                sendto(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, addrlen);
+
+                // Wait for ack
+                struct Ack ack;
+                ssize_t recv_size = recvfrom(sockfd, &ack, sizeof(struct Ack), MSG_DONTWAIT, (struct sockaddr *)addr, &addrlen);
+                if (recv_size > 0)
+                {
+                    printf("Received ACK packet with ack num: %d\n", ack.ackNumber);
+                    return;
+                }
+                else if (recv_size == -1)
+                {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK)
+                    {
+                        // ack not received yet
+                        continue;
+                    }
+                    else
+                    {
+                        perror("recvfrom");
+                        exit(1);
+                    }
+                }
+            }
         }
         else if (bytes_received == -1)
         {
@@ -84,13 +127,13 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
         }
     }
 
-    // revert socket to blocking mode
-    flags &= ~O_NONBLOCK;
-    if (fcntl(sockfd, F_SETFL, flags) == -1)
-    {
-        perror("fcntl - F_SETFL");
-        exit(EXIT_FAILURE);
-    }
+    // // revert socket to blocking mode
+    // flags &= ~O_NONBLOCK;
+    // if (fcntl(sockfd, F_SETFL, flags) == -1)
+    // {
+    //     perror("fcntl - F_SETFL");
+    //     exit(EXIT_FAILURE);
+    // }
 
     // send syn-ack
     char syn = 0;
@@ -113,7 +156,7 @@ void checkAck(struct sockaddr_in addr, int sockfd, int *sequenceNumber,
     int bytesReceived = recvfrom(sockfd, ack, MAX_ACK_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
     if (bytesReceived < 0)
     {
-        if (errno == EWOULDBLOCK)
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
             if (*retries < MAX_RETRIES)
             {

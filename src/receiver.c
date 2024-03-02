@@ -34,12 +34,13 @@
  * @brief Sends an acknowledgment message to the sender.
  *
  * TODO: add sequence number to ack_msg (depends on how this is implemented in sender)
+ * btw this is for sending an acknowledgement that a packet was received
  *
  * @param sockfd
  * @param addr
  * @param addrlen
  */
-void send_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t sequenceNumber)
+void send_packet_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t sequenceNumber)
 {
     // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
     if (sendto(sockfd, &sequenceNumber, sizeof(uint32_t), 0, (struct sockaddr *)addr, addrlen) == -1)
@@ -53,31 +54,55 @@ void send_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 {
     // tell sender its ok to start, SYN packet
 
-    // set socket to non-blocking mode
-    int flags = fcntl(sockfd, F_GETFL, 0);
-    flags |= O_NONBLOCK;
-    if (fcntl(sockfd, F_SETFL, flags) == -1)
-    {
-        perror("fcntl - F_SETFL");
-        exit(1);
-    }
+    struct timeval tv;
+    int timeout = SYN_ACK_TIMEOUT_MILLISEC;
+    tv.tv_sec = 0;
 
     while (1)
     {
-        char syn = 0;
-        ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
+        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+        {
+            perror("timeout");
+            exit(1);
+        }
+
+        // Send syn
+        struct Syn syn;
+        syn.sequenceNumber = 123;
+
+        char syn_buffer[sizeof(struct Syn)];
+        memcpy(syn_buffer, &syn, sizeof(struct Syn));
+
+        ssize_t size = sendto(sockfd, syn_buffer, sizeof(syn_buffer), 0, (struct sockaddr *)&addr, addrlen);
+
+        printf("%p %d", addr, addrlen);
         printf("Size sent %zd \n", size);
 
-        ssize_t recv_size = recvfrom(sockfd, &syn, sizeof(char), MSG_DONTWAIT, (struct sockaddr *)addr, &addrlen);
+        // Wait for syn-ack
+        struct SynAck syn_ack;
+        ssize_t recv_size = recvfrom(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, &addrlen);
+
+        // TODO: What happens if recv_size == 0?
         if (recv_size > 0)
         {
+            // reply with final ack
+            printf("Received SYN-ACK with seq: %d, ack: %d\n", syn_ack.sequenceNumber, syn_ack.ackNumber);
+
+            struct Ack ack;
+            ack.ackNumber = syn_ack.sequenceNumber + 1;
+            sendto(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)&addr, addrlen);
+
             break;
         }
+
         else if (recv_size == -1)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                // syn-ack not received yet
+                // syn-ack not received yet. Double timeout (exponential backoff fancy hohoho)
+                // timeout *= 2;
                 continue;
             }
             else
@@ -86,14 +111,6 @@ void send_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
                 exit(1);
             }
         }
-    }
-
-    // revert socket to blocking mode
-    flags &= ~O_NONBLOCK;
-    if (fcntl(sockfd, F_SETFL, flags) == -1)
-    {
-        perror("fcntl - F_SETFL");
-        exit(1);
     }
 }
 
@@ -153,6 +170,7 @@ void rrecv(unsigned short int myUDPport,
 
     unsigned long long bytesWritten = 0;
 
+    // Establish connection with sender
     send_syn(sockfd, &addr, addrlen);
 
     while (1)
@@ -174,7 +192,7 @@ void rrecv(unsigned short int myUDPport,
 
         struct Header header;
         memcpy(&header, packet, HEADER_SIZE);
-        send_ack(sockfd, &addr, addrlen, header.sequenceNumber);
+        send_packet_ack(sockfd, &addr, addrlen, header.sequenceNumber);
 
         char packet_data[header.messageLength];
         memcpy(packet_data, packet + HEADER_SIZE, header.messageLength);
