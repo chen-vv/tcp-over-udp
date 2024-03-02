@@ -48,6 +48,14 @@ void send_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t 
     }
 }
 
+void syn_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
+{
+    // tell sender its ok to start, SYN packet
+    char syn = 0;
+    ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
+    printf("Size sent %zd \n", size);
+}
+
 /** @brief Writes the bytes received on port myUDPport to a file
  *         called destinationFile at a rate of writeRate bytes
  *         per second.
@@ -103,6 +111,8 @@ void rrecv(unsigned short int myUDPport,
     time(&start);
 
     unsigned long long bytesWritten = 0;
+
+    syn_ack(sockfd, &addr, addrlen);
 
     while (1)
     {

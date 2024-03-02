@@ -46,6 +46,50 @@ long long getFileSize(const char *filename)
         return -1;
 }
 
+void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
+{
+    printf("Waiting for SYN packet\n");
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(sockfd, &readfds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+
+    while (1)
+    {
+        int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
+        if (activity == -1)
+        {
+            perror("select");
+            break;
+        }
+        else if (activity == 0)
+        {
+            printf("Zero activity\n");
+            continue;
+        }
+        else
+        {
+            char syn;
+            ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, &addrlen);
+            if (bytes_received < 0)
+            {
+                perror("recvfrom");
+            }
+            else
+            {
+                printf("Received SYN packet\n");
+                break;
+            }
+        }
+    }
+    char syn = 0;
+    sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
+}
+
 // TODO: comments
 void checkAck(struct sockaddr_in addr, int sockfd, int *sequenceNumber,
               unsigned long long *bytesSent, int bytesSentThisTime, int *timeout,
@@ -148,6 +192,8 @@ void rsend(char *hostname,
     {
         bytesToTransfer = getFileSize(filename);
     }
+
+    receive_syn(sockfd, &addr, sizeof(addr));
 
     unsigned long long bytesSent = 0;
     char packet_data[MAX_BUFFER_SIZE];
