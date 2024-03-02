@@ -21,6 +21,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -29,6 +30,21 @@
 #include <pthread.h>
 #include <errno.h>
 #include "include/udp.h"
+
+/**
+ * @brief Get the File Size object
+ *
+ * @param filename
+ * @return long long The size of the file in bytes
+ */
+long long getFileSize(const char *filename)
+{
+    struct stat st;
+    if (stat(filename, &st) == 0)
+        return st.st_size;
+    else
+        return -1;
+}
 
 // TODO: comments
 void checkAck(struct sockaddr_in addr, int sockfd, int *sequenceNumber,
@@ -126,6 +142,11 @@ void rsend(char *hostname,
     {
         perror("fopen");
         exit(1);
+    }
+
+    if (getFileSize(filename) < bytesToTransfer)
+    {
+        bytesToTransfer = getFileSize(filename);
     }
 
     unsigned long long bytesSent = 0;
