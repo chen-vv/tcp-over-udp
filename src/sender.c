@@ -47,18 +47,9 @@ long long getFileSize(const char *filename)
         return -1;
 }
 
-void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
+void send_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 {
-    printf("Waiting for SYN packet\n");
-
-    // // set socket to non-blocking mode
-    // int flags = fcntl(sockfd, F_GETFL, 0);
-    // flags |= O_NONBLOCK;
-    // if (fcntl(sockfd, F_SETFL, flags) == -1)
-    // {
-    //     perror("fcntl - F_SETFL");
-    //     exit(1);
-    // }
+    // tell sender its ok to start, SYN packet
 
     struct timeval tv;
     int timeout = SYN_ACK_TIMEOUT_MILLISEC;
@@ -74,65 +65,55 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
             exit(1);
         }
 
+        // Send syn
         struct Syn syn;
+        syn.sequenceNumber = 111;
 
-        printf("Listening for bytes\n");
-        ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, &addrlen);
-        printf("Received %zd bytes\n", bytes_received);
+        // char syn_buffer[sizeof(struct Syn)];
+        // memcpy(syn_buffer, &syn, sizeof(struct Syn));
 
-        if (bytes_received > 0)
+        ssize_t size = sendto(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, addrlen);
+
+        printf("syn sent, %zd bytes \n", size);
+        usleep(1200 * USEC_PER_MILLISEC);
+
+        // Wait for syn-ack
+        // char recv_buffer[sizeof(struct SynAck)];
+        struct SynAck syn_ack;
+        // struct Syn testSyn;
+        ssize_t recv_size = recvfrom(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, &addrlen);
+
+        // printf("Size received %zd \n", recv_size);
+        // ssize_t recv_size = 666;
+        // if (recv_size == sizeof(struct SynAck))
+        // {
+        // Assuming the received data is of the correct size
+        // memcpy(&syn_ack, recv_buffer, sizeof(recv_buffer));
+
+        // TODO: What happens if recv_size == 0?
+        if (recv_size > 0 && recv_size == sizeof(struct SynAck))
         {
-            printf("Received SYN packet with seq: %d\n", syn.sequenceNumber);
 
-            // Reply with syn-ack
-            struct SynAck syn_ack;
-            syn_ack.sequenceNumber = 777;
-            syn_ack.ackNumber = syn.sequenceNumber + 1;
+            // reply with final ack
+            printf("Received SYN-ACK with seq: %d\n", syn_ack.sequenceNumber);
 
-            while (TRUE)
-            {
-                sendto(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, addrlen);
+            // printf("Ack: %d", syn_ack.ackNumber);
+            struct Ack ack;
+            ack.ackNumber = syn_ack.sequenceNumber + 1;
 
-                // Wait for ack
-                struct Ack ack;
-                ssize_t recv_size = recvfrom(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)addr, &addrlen);
-                if (recv_size > 0)
-                {
-                    printf("Received ACK packet with ack num: %d\n", ack.ackNumber);
-                    return;
-                }
-                else if (recv_size == -1)
-                {
-                    if (errno == EAGAIN || errno == EWOULDBLOCK)
-                    {
-                        // ack not received yet
-                        printf("ack timeout\n");
-                        if (timeout * 2 < SYN_ACK_MAX_TIMEOUT)
-                        {
-                            timeout *= 2;
-                        }
-                        continue;
-                    }
-                    else
-                    {
-                        perror("recvfrom");
-                        exit(1);
-                    }
-                }
-            }
+            printf("Sending ACK with ack: %d\n", ack.ackNumber);
+            sendto(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)addr, addrlen);
+
+            return;
         }
-        else if (bytes_received == -1)
+
+        else if (recv_size == -1 || errno == EAGAIN || errno == EWOULDBLOCK)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                // no syn yet
-                printf("Syn timeout, new timeout: %d\n", timeout * 2);
-
-                if (timeout * 2 < SYN_ACK_MAX_TIMEOUT)
-                {
-                    timeout *= 2;
-                }
-
+                // syn-ack not received yet. Double timeout (exponential backoff fancy hohoho)
+                timeout *= 2;
+                printf("Timeout: %d\n", timeout);
                 continue;
             }
             else
@@ -141,23 +122,8 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
                 exit(1);
             }
         }
-    }
 
-    // // revert socket to blocking mode
-    // flags &= ~O_NONBLOCK;
-    // if (fcntl(sockfd, F_SETFL, flags) == -1)
-    // {
-    //     perror("fcntl - F_SETFL");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // send syn-ack
-    char syn = 0;
-    ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
-    if (size == -1)
-    {
-        perror("sendto");
-        exit(1);
+        timeout *= 2;
     }
 }
 
@@ -252,8 +218,6 @@ void rsend(char *hostname,
     addr.sin_port = htons(hostUDPport);
     memcpy(&addr.sin_addr.s_addr, host->h_addr, host->h_length);
 
-    receive_syn(sockfd, &addr, sizeof(addr));
-
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
     {
@@ -265,6 +229,8 @@ void rsend(char *hostname,
     {
         bytesToTransfer = getFileSize(filename);
     }
+
+    send_syn(sockfd, &addr, sizeof(addr));
 
     unsigned long long bytesSent = 0;
     char packet_data[MAX_BUFFER_SIZE];
