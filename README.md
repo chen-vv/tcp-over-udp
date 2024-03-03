@@ -26,7 +26,7 @@ We used [Pytest](https://docs.pytest.org/en/8.0.x/), a Python testing framework,
 
 ### Transfer test
 
-This tests the transfer of 4 different files using the implemented protocol. It tests a plain text file, a jpeg file, an mp3 file, and an mp4 file. It compares both the lenght and contents of the sent and received files.
+This tests the transfer of 3 different files using the implemented protocol. It tests a plain text file, a jpeg file, and an mp3 file. It compares both the length and contents of the sent and received files.
 
 To run the test:
 
@@ -36,7 +36,7 @@ To run the test:
 
 ### Handshake test
 
-This tests the 3-way handshake protocol by testing the transfer of a file when the receiver is started before the sender and when the sender is started before the receiver. It compares both the length of the send and received files as well as their contents.
+This tests the 3-way handshake protocol by testing the transfer of a file when the receiver is started before the sender and when the sender is started before the receiver. It compares both the length of the sent and received files as well as their contents.
 
 To run the test:
 
@@ -56,22 +56,23 @@ To run the test:
 
 ### Bandwidth & send rate tests
 
-These tests are to check the bandwith usage of the protocol and the senrate of the sender. These tests do not use pytest.
+These tests are to check the bandwidth usage of the protocol and the send rate of the sender. These tests do not use Pytest.
 
 To run the bandwidth check:
 
 1. In the command line, navigate to the test directory using `cd src/test`.
-2. Run `python3 check_bandwidth.py`.
-3. The results will be displayed on the console.
+2. Run `python3 check_bandwidth.py` to start the bandwidth check.
+3. The bandwidth usage over time will be displayed on the console.
+4. To stop the test program, press `CTRL + C` or `CMD + C` on the keyboard, depending on your machine environment.
 
 To run the send rate check:
 
-1. Open a session in cloudlab, and open a terminal in juno and in europa.
+1. [Open a session](https://www.cloudlab.us/instantiate.php?profile=f4831d7ad4a10703c7bea6e63acceb3a76bf1dcf) in Cloudlab, and open a terminal in juno and in europa.
 2. In the command line, navigate to the test directory using `cd src/test`.
-3. Update the hostanme of europa in the script and run the script in juno with
-`python3 check_sendrate.py` while runing the receiver from the command line within europa with the
-following commmand: `./receiver 12345 received.mp3`.
-4. The results will be displayed on the console.
+3. Update the variable `RECEIVER_HOSTNAME` in `check_sendrate.py` to the hostname of europa.
+4. In the europa terminal, run `./receiver 12345 received.mp3` to start the receiver.
+5. In the juno terminal, run `python3 check_sendrate.py` to start the send rate check.
+6. The results will be displayed on the console.
 
 ### Troubleshooting
 
