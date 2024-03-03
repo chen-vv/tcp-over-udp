@@ -114,7 +114,7 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
         _sequenceNumber = syn.sequenceNumber;
 
         // Send SYN packet and delay before checking for SYN-ACK
-        ssize_t size = sendto(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, addrlen);
+        sendto(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, addrlen);
         usleep(timeout * USEC_PER_MILLISEC);
 
         struct SynAck syn_ack;
@@ -126,7 +126,6 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
             struct Ack ack;
             ack.ackNumber = syn_ack.sequenceNumber + 1;
 
-            printf("Sending ACK with ack: %d\n", ack.ackNumber);
             sendto(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)addr, addrlen);
 
             return;

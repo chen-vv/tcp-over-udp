@@ -131,8 +131,14 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
 
                 if (recv_size > 0)
                 {
-                    assert(ack.ackNumber == syn_ack.ackNumber);
-                    return;
+                    if (ack.ackNumber == syn_ack.ackNumber)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
                 else if (recv_size == -1)
                 {
