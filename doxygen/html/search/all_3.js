@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['receiver_2ec_0',['receiver.c',['../receiver_8c.html',1,'']]],
-  ['rrecv_1',['rrecv',['../receiver_8c.html#ab41fdd85753470e49e9439d9e096947b',1,'receiver.c']]],
-  ['rsend_2',['rsend',['../sender_8c.html#a470031165b913666b8a71d2b05ba7815',1,'sender.c']]]
+  ['check_5fsender_5fbandwidth_0',['check_sender_bandwidth',['../namespacecheck__sender__bandwidth.html',1,'']]],
+  ['checkack_1',['checkAck',['../sender_8c.html#a8267ff89ce4221d2d372ef5ec2ad875f',1,'sender.c']]]
 ];

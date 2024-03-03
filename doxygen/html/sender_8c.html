@@ -92,7 +92,8 @@ $(function(){initNavTree('sender_8c.html',''); initResizable(); });
 
 <div class="header">
   <div class="summary">
-<a href="#func-members">Functions</a>  </div>
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">sender.c File Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -104,20 +105,40 @@ $(function(){initNavTree('sender_8c.html',''); initResizable(); });
 <code>#include &lt;string.h&gt;</code><br />
 <code>#include &lt;arpa/inet.h&gt;</code><br />
 <code>#include &lt;netinet/in.h&gt;</code><br />
+<code>#include &lt;netdb.h&gt;</code><br />
+<code>#include &lt;sys/time.h&gt;</code><br />
+<code>#include &lt;sys/stat.h&gt;</code><br />
 <code>#include &lt;sys/types.h&gt;</code><br />
 <code>#include &lt;sys/socket.h&gt;</code><br />
 <code>#include &lt;unistd.h&gt;</code><br />
+<code>#include &lt;fcntl.h&gt;</code><br />
 <code>#include &lt;pthread.h&gt;</code><br />
 <code>#include &lt;errno.h&gt;</code><br />
+<code>#include &quot;<a class="el" href="udp_8h_source.html">include/udp.h</a>&quot;</code><br />
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a3685d3935cd7a8e519cc81249e3a736b" id="r_a3685d3935cd7a8e519cc81249e3a736b"><td class="memItemLeft" align="right" valign="top">long long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3685d3935cd7a8e519cc81249e3a736b">getFileSize</a> (const char *filename)</td></tr>
+<tr class="memdesc:a3685d3935cd7a8e519cc81249e3a736b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the size of a file.  <br /></td></tr>
+<tr class="separator:a3685d3935cd7a8e519cc81249e3a736b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f186f0de191694b0915151d2af3769b" id="r_a4f186f0de191694b0915151d2af3769b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4f186f0de191694b0915151d2af3769b">establish_connection</a> (int sockfd, struct sockaddr_in *addr, socklen_t addrlen)</td></tr>
+<tr class="memdesc:a4f186f0de191694b0915151d2af3769b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Establishes a connection with the receiver using the 3-way handshake process.  <br /></td></tr>
+<tr class="separator:a4f186f0de191694b0915151d2af3769b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8267ff89ce4221d2d372ef5ec2ad875f" id="r_a8267ff89ce4221d2d372ef5ec2ad875f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8267ff89ce4221d2d372ef5ec2ad875f">checkAck</a> (struct sockaddr_in addr, int sockfd, int *sequenceNumber, unsigned long long *totalBytesSent, int bytesSentThisTime, int *timeout, int *retries, struct timeval *tv)</td></tr>
+<tr class="memdesc:a8267ff89ce4221d2d372ef5ec2ad875f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks for an ACK packet from the receiver.  <br /></td></tr>
+<tr class="separator:a8267ff89ce4221d2d372ef5ec2ad875f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a470031165b913666b8a71d2b05ba7815" id="r_a470031165b913666b8a71d2b05ba7815"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a470031165b913666b8a71d2b05ba7815">rsend</a> (char *hostname, unsigned short int hostUDPport, char *filename, unsigned long long int bytesToTransfer)</td></tr>
 <tr class="memdesc:a470031165b913666b8a71d2b05ba7815"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sends the first bytesToTransfer bytes of the file indicated by filename to the receiver at hostname:hostUDPport.  <br /></td></tr>
 <tr class="separator:a470031165b913666b8a71d2b05ba7815"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c04138a5bfe5d72780bb7e82a18e627" id="r_a3c04138a5bfe5d72780bb7e82a18e627"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3c04138a5bfe5d72780bb7e82a18e627">main</a> (int argc, char **argv)</td></tr>
 <tr class="memdesc:a3c04138a5bfe5d72780bb7e82a18e627"><td class="mdescLeft">&#160;</td><td class="mdescRight">UDP sender entrypoint.  <br /></td></tr>
 <tr class="separator:a3c04138a5bfe5d72780bb7e82a18e627"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a42b6421c1816cda09f08c59416e7523a" id="r_a42b6421c1816cda09f08c59416e7523a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a42b6421c1816cda09f08c59416e7523a">_sequenceNumber</a> = 0</td></tr>
+<tr class="memdesc:a42b6421c1816cda09f08c59416e7523a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The sequence number used to keep track of the packets sent.  <br /></td></tr>
+<tr class="separator:a42b6421c1816cda09f08c59416e7523a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A UDP sender program. </p>
@@ -125,8 +146,144 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Vicky Chen (chen-vv) </dd>
 <dd>
 Eric Omielan (eomielan) </dd></dl>
-<dl class="bug"><dt><b><a class="el" href="bug.html#_bug000002">Bug</a></b></dt><dd>No known bugs. </dd></dl>
+<dl class="bug"><dt><b><a class="el" href="bug.html#_bug000003">Bug</a></b></dt><dd>No known bugs. </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
+<a id="a8267ff89ce4221d2d372ef5ec2ad875f" name="a8267ff89ce4221d2d372ef5ec2ad875f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8267ff89ce4221d2d372ef5ec2ad875f">&#9670;&#160;</a></span>checkAck()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void checkAck </td>
+          <td>(</td>
+          <td class="paramtype">struct sockaddr_in</td>          <td class="paramname"><span class="paramname"><em>addr</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>sockfd</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *</td>          <td class="paramname"><span class="paramname"><em>sequenceNumber</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned long long *</td>          <td class="paramname"><span class="paramname"><em>totalBytesSent</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>bytesSentThisTime</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *</td>          <td class="paramname"><span class="paramname"><em>timeout</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *</td>          <td class="paramname"><span class="paramname"><em>retries</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct timeval *</td>          <td class="paramname"><span class="paramname"><em>tv</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Checks for an ACK packet from the receiver. </p>
+<p>This function checks for an ACK packet from the receiver. If an ACK packet is received, the function checks if the sequence number of the ACK packet matches the expected sequence number. If the sequence number matches, the function updates the sequence number. If the sequence number does not match, the function updates the timeout and retries the packet.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">addr</td><td>The address of the receiver </td></tr>
+    <tr><td class="paramname">sockfd</td><td>The socket file descriptor </td></tr>
+    <tr><td class="paramname">sequenceNumber</td><td>The sequence number of the most recent packet that was sent </td></tr>
+    <tr><td class="paramname">totalBytesSent</td><td>The total number of bytes sent to the receiver </td></tr>
+    <tr><td class="paramname">bytesSentThisTime</td><td>The number of bytes most recently sent to the receiver </td></tr>
+    <tr><td class="paramname">timeout</td><td>The current timeout value, in milliseconds </td></tr>
+    <tr><td class="paramname">retries</td><td>The current number of retries attempted </td></tr>
+    <tr><td class="paramname">tv</td><td>The timeval struct that specifies the socket timeout </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Void </dd></dl>
+
+</div>
+</div>
+<a id="a4f186f0de191694b0915151d2af3769b" name="a4f186f0de191694b0915151d2af3769b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4f186f0de191694b0915151d2af3769b">&#9670;&#160;</a></span>establish_connection()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void establish_connection </td>
+          <td>(</td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>sockfd</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct sockaddr_in *</td>          <td class="paramname"><span class="paramname"><em>addr</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">socklen_t</td>          <td class="paramname"><span class="paramname"><em>addrlen</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Establishes a connection with the receiver using the 3-way handshake process. </p>
+<p>Sends a SYN packet to the receiver and waits for a SYN-ACK packet. Upon receiving the SYN-ACK packet, the function sends a single ACK packet to the receiver and assumes the connection is established.</p>
+<p>This function sets a random value for the sequence number that will be sent to the receiver. This is used to ensure that the sender and receiver are in sync with each other and that the packets are not duplicated or lost. While the sequence number could always be set to 0, this would make the protocol more susceptible to attacks and would not be as robust as using a random sequence number.</p>
+<p>If a SYN-ACK packet is not received within a certain timeout, the SYN packet is resent. Additionally, this function will initiate an exponential backoff mechanism and double the timeout until a maximum threshold is reached.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">sockfd</td><td>The socket file descriptor </td></tr>
+    <tr><td class="paramname">addr</td><td>The address of the receiver </td></tr>
+    <tr><td class="paramname">addrlen</td><td>The length of the address </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Void </dd></dl>
+
+</div>
+</div>
+<a id="a3685d3935cd7a8e519cc81249e3a736b" name="a3685d3935cd7a8e519cc81249e3a736b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3685d3935cd7a8e519cc81249e3a736b">&#9670;&#160;</a></span>getFileSize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long long getFileSize </td>
+          <td>(</td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>filename</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets the size of a file. </p>
+<p>This function retrieves the size of the file specified by the given filename.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">filename</td><td>The path to the file whose size is to be retrieved. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The size of the file in bytes if successful, or -1 if an error occurs.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>If the file size exceeds the maximum value representable by a long long, the behavior of this function is undefined. </dd></dl>
+
+</div>
+</div>
 <a id="a3c04138a5bfe5d72780bb7e82a18e627" name="a3c04138a5bfe5d72780bb7e82a18e627"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3c04138a5bfe5d72780bb7e82a18e627">&#9670;&#160;</a></span>main()</h2>
 
@@ -147,7 +304,7 @@ Eric Omielan (eomielan) </dd></dl>
 </div><div class="memdoc">
 
 <p>UDP sender entrypoint. </p>
-<p>TODO: Implement main &amp; write comments Mention that this takes in the command line arguments for invoking the file transfer.</p>
+<p>Parses the command line arguments and calls the rsend function to send the file.</p>
 <dl class="section return"><dt>Returns</dt><dd>Should not return </dd></dl>
 
 </div>
@@ -182,7 +339,7 @@ Eric Omielan (eomielan) </dd></dl>
 </div><div class="memdoc">
 
 <p>Sends the first bytesToTransfer bytes of the file indicated by filename to the receiver at hostname:hostUDPport. </p>
-<p>This function sends the file using the UDP (SOCK_DGRAM) file transfer protocol. The bytes should be transferred correctly and efficiently, even if the network drops or reorders packets. See rrecv for the counterpart function.</p>
+<p>This function sends the file using the UDP (SOCK_DGRAM) file transfer protocol. The bytes are transferred correctly and efficiently, even if the network drops, duplicates, or reorders packets. See rrecv for the counterpart function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">hostname</td><td>The name of the receiver host. </td></tr>
@@ -192,7 +349,26 @@ Eric Omielan (eomielan) </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Void. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Void.</dd></dl>
+<p>Sources: <a href="https://www.geeksforgeeks.org/socket-programming-cc/">https://www.geeksforgeeks.org/socket-programming-cc/</a> <a href="https://www.cs.cmu.edu/~srini/15-441/S10/lectures/r01-sockets.pdf">https://www.cs.cmu.edu/~srini/15-441/S10/lectures/r01-sockets.pdf</a> <a href="https://stackoverflow.com/questions/13547721/udp-socket-set-timeout">https://stackoverflow.com/questions/13547721/udp-socket-set-timeout</a> <a href="https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket">https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket</a> </p>
+
+</div>
+</div>
+<h2 class="groupheader">Variable Documentation</h2>
+<a id="a42b6421c1816cda09f08c59416e7523a" name="a42b6421c1816cda09f08c59416e7523a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a42b6421c1816cda09f08c59416e7523a">&#9670;&#160;</a></span>_sequenceNumber</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int _sequenceNumber = 0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The sequence number used to keep track of the packets sent. </p>
+<p>This variable is used to keep track of the sequence number of the packets that are sent to the receiver. The sequence number is used to ensure that the packets are not duplicated or lost. </p>
 
 </div>
 </div>

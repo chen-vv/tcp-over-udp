@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['main_0',['main',['../receiver_8c.html#a3c04138a5bfe5d72780bb7e82a18e627',1,'main(int argc, char **argv):&#160;receiver.c'],['../sender_8c.html#a3c04138a5bfe5d72780bb7e82a18e627',1,'main(int argc, char **argv):&#160;sender.c']]]
+  ['checkack_0',['checkAck',['../sender_8c.html#a8267ff89ce4221d2d372ef5ec2ad875f',1,'sender.c']]]
 ];

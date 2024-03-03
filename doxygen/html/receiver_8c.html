@@ -92,7 +92,8 @@ $(function(){initNavTree('receiver_8c.html',''); initResizable(); });
 
 <div class="header">
   <div class="summary">
-<a href="#func-members">Functions</a>  </div>
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">receiver.c File Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -104,20 +105,36 @@ $(function(){initNavTree('receiver_8c.html',''); initResizable(); });
 <code>#include &lt;string.h&gt;</code><br />
 <code>#include &lt;arpa/inet.h&gt;</code><br />
 <code>#include &lt;netinet/in.h&gt;</code><br />
+<code>#include &lt;time.h&gt;</code><br />
+<code>#include &lt;fcntl.h&gt;</code><br />
+<code>#include &lt;sys/time.h&gt;</code><br />
 <code>#include &lt;sys/types.h&gt;</code><br />
 <code>#include &lt;sys/socket.h&gt;</code><br />
 <code>#include &lt;unistd.h&gt;</code><br />
 <code>#include &lt;pthread.h&gt;</code><br />
 <code>#include &lt;errno.h&gt;</code><br />
+<code>#include &quot;<a class="el" href="udp_8h_source.html">include/udp.h</a>&quot;</code><br />
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a3d02354d039cd89c185e0362a4fb1d1c" id="r_a3d02354d039cd89c185e0362a4fb1d1c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3d02354d039cd89c185e0362a4fb1d1c">send_packet_ack</a> (int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t sequenceNumber)</td></tr>
+<tr class="memdesc:a3d02354d039cd89c185e0362a4fb1d1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sends an acknowledgment message to the sender.  <br /></td></tr>
+<tr class="separator:a3d02354d039cd89c185e0362a4fb1d1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f186f0de191694b0915151d2af3769b" id="r_a4f186f0de191694b0915151d2af3769b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4f186f0de191694b0915151d2af3769b">establish_connection</a> (int sockfd, struct sockaddr_in *addr, socklen_t addrlen)</td></tr>
+<tr class="memdesc:a4f186f0de191694b0915151d2af3769b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Establishes a connection with the sender using the 3-way handshake process.  <br /></td></tr>
+<tr class="separator:a4f186f0de191694b0915151d2af3769b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab41fdd85753470e49e9439d9e096947b" id="r_ab41fdd85753470e49e9439d9e096947b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab41fdd85753470e49e9439d9e096947b">rrecv</a> (unsigned short int myUDPport, char *destinationFile, unsigned long long int writeRate)</td></tr>
 <tr class="memdesc:ab41fdd85753470e49e9439d9e096947b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the bytes received on port myUDPport to a file called destinationFile at a rate of writeRate bytes per second.  <br /></td></tr>
 <tr class="separator:ab41fdd85753470e49e9439d9e096947b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c04138a5bfe5d72780bb7e82a18e627" id="r_a3c04138a5bfe5d72780bb7e82a18e627"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3c04138a5bfe5d72780bb7e82a18e627">main</a> (int argc, char **argv)</td></tr>
 <tr class="memdesc:a3c04138a5bfe5d72780bb7e82a18e627"><td class="mdescLeft">&#160;</td><td class="mdescRight">UDP receiver entrypoint.  <br /></td></tr>
 <tr class="separator:a3c04138a5bfe5d72780bb7e82a18e627"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a77723a6c63ab67fc7f7c85c258c85b20" id="r_a77723a6c63ab67fc7f7c85c258c85b20"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a77723a6c63ab67fc7f7c85c258c85b20">_latestSequenceNumber</a> = 0</td></tr>
+<tr class="memdesc:a77723a6c63ab67fc7f7c85c258c85b20"><td class="mdescLeft">&#160;</td><td class="mdescRight">The most recent sequence number of a received packet.  <br /></td></tr>
+<tr class="separator:a77723a6c63ab67fc7f7c85c258c85b20"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A UDP receiver program. </p>
@@ -125,8 +142,48 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Vicky Chen (chen-vv) </dd>
 <dd>
 Eric Omielan (eomielan) </dd></dl>
-<dl class="bug"><dt><b><a class="el" href="bug.html#_bug000001">Bug</a></b></dt><dd>No known bugs. </dd></dl>
+<dl class="bug"><dt><b><a class="el" href="bug.html#_bug000002">Bug</a></b></dt><dd>No known bugs. </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
+<a id="a4f186f0de191694b0915151d2af3769b" name="a4f186f0de191694b0915151d2af3769b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4f186f0de191694b0915151d2af3769b">&#9670;&#160;</a></span>establish_connection()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void establish_connection </td>
+          <td>(</td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>sockfd</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct sockaddr_in *</td>          <td class="paramname"><span class="paramname"><em>addr</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">socklen_t</td>          <td class="paramname"><span class="paramname"><em>addrlen</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Establishes a connection with the sender using the 3-way handshake process. </p>
+<p>Receives a SYN packet from the sender and sends a SYN-ACK packet back. Upon receiving the final ACK packet, the connection is established.</p>
+<p>This function sets a random value for the sequence number that will be sent to the sender. This is used to ensure that the sender and receiver are in sync with each other and that the packets are not duplicated or lost. While the sequence number could always be set to 0, this would make the protocol more susceptible to attacks and would not be as robust as using a random sequence number.</p>
+<p>If the initial SYN packet or final ACK packet is not received within a certain timeout, this function will initiate an exponential backoff mechanism and double the timeout until a maximum timeout is reached.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">sockfd</td><td>The socket file descriptor </td></tr>
+    <tr><td class="paramname">addr</td><td>The address of the sender </td></tr>
+    <tr><td class="paramname">addrlen</td><td>The length of the address </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Void </dd></dl>
+
+</div>
+</div>
 <a id="a3c04138a5bfe5d72780bb7e82a18e627" name="a3c04138a5bfe5d72780bb7e82a18e627"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3c04138a5bfe5d72780bb7e82a18e627">&#9670;&#160;</a></span>main()</h2>
 
@@ -147,7 +204,7 @@ Eric Omielan (eomielan) </dd></dl>
 </div><div class="memdoc">
 
 <p>UDP receiver entrypoint. </p>
-<p>TODO: Implement main &amp; write comments</p>
+<p>Parses the command line arguments and calls the rrecv function to receive the file. If writeRate is not specified, then the default value is 0.</p>
 <dl class="section return"><dt>Returns</dt><dd>Should not return </dd></dl>
 
 </div>
@@ -177,17 +234,80 @@ Eric Omielan (eomielan) </dd></dl>
 </div><div class="memdoc">
 
 <p>Writes the bytes received on port myUDPport to a file called destinationFile at a rate of writeRate bytes per second. </p>
-<p>If writeRate is 0 then the receiver can write as many bytes as possible into destinationFile. Otherwise, if writeRate is non-zero then the receiver should write no more than writeRate bytes per second to destinationFile. See rsend for the counterpart function.</p>
+<p>If writeRate is 0, then the receiver can write as many bytes as possible into destinationFile. Otherwise, if writeRate is non-zero then the receiver writes no more than writeRate bytes per second to destinationFile. See rsend for the counterpart function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">myUDPport</td><td>The port number to listen on. </td></tr>
     <tr><td class="paramname">destinationFile</td><td>The name of the file to write to. </td></tr>
-    <tr><td class="paramname">writeRate</td><td>The maximum number of bytes to write per second. Must be an integer greater than or equal to zero. <br  />
- </td></tr>
+    <tr><td class="paramname">writeRate</td><td>The maximum number of bytes to write per second. Must be an integer greater than or equal to zero. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Void. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Void.</dd></dl>
+<p>Sources: <a href="https://www.geeksforgeeks.org/socket-programming-cc/">https://www.geeksforgeeks.org/socket-programming-cc/</a> <a href="https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html">https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html</a> <a href="https://www.geeksforgeeks.org/time-function-in-c/">https://www.geeksforgeeks.org/time-function-in-c/</a> <a href="https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket">https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket</a> </p>
+
+</div>
+</div>
+<a id="a3d02354d039cd89c185e0362a4fb1d1c" name="a3d02354d039cd89c185e0362a4fb1d1c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3d02354d039cd89c185e0362a4fb1d1c">&#9670;&#160;</a></span>send_packet_ack()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void send_packet_ack </td>
+          <td>(</td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>sockfd</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct sockaddr_in *</td>          <td class="paramname"><span class="paramname"><em>addr</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">socklen_t</td>          <td class="paramname"><span class="paramname"><em>addrlen</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t</td>          <td class="paramname"><span class="paramname"><em>sequenceNumber</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Sends an acknowledgment message to the sender. </p>
+<p>TODO: add sequence number to ack_msg (depends on how this is implemented in sender) btw this is for sending an acknowledgement that a packet was received</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">sockfd</td><td>The socket file descriptor </td></tr>
+    <tr><td class="paramname">addr</td><td>The address of the sender </td></tr>
+    <tr><td class="paramname">addrlen</td><td>The length of the address </td></tr>
+    <tr><td class="paramname">sequenceNumber</td><td>The sequence number of the packet to acknowledge </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Void</dd></dl>
+<p>Sources: <a href="https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket">https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket</a> </p>
+
+</div>
+</div>
+<h2 class="groupheader">Variable Documentation</h2>
+<a id="a77723a6c63ab67fc7f7c85c258c85b20" name="a77723a6c63ab67fc7f7c85c258c85b20"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a77723a6c63ab67fc7f7c85c258c85b20">&#9670;&#160;</a></span>_latestSequenceNumber</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t _latestSequenceNumber = 0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The most recent sequence number of a received packet. </p>
+<p>By default, this is set to 0. This is used to keep track of the most recent sequence number received from the sender. This is used to discard duplicate packets. </p>
 
 </div>
 </div>
