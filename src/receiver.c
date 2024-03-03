@@ -96,7 +96,7 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
     while (TRUE)
     {
         // Set timeout for SYN and ACK packets
-        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+        tv.tv_usec = timeout;
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
         {
@@ -118,7 +118,7 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
             syn_ack.ackNumber = syn.sequenceNumber + 1;
 
             timeout = SYN_ACK_DEFAULT_TIMEOUT_MILLISEC;
-            tv.tv_usec = timeout * USEC_PER_MILLISEC;
+            tv.tv_usec = timeout;
 
             while (TRUE)
             {

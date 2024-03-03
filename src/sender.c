@@ -98,7 +98,7 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
     while (TRUE)
     {
         // Set timeout for SYN-ACK packet
-        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+        tv.tv_usec = timeout;
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
         {
@@ -115,7 +115,7 @@ void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrle
 
         // Send SYN packet and delay before checking for SYN-ACK
         sendto(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, addrlen);
-        usleep(timeout * USEC_PER_MILLISEC);
+        usleep(timeout);
 
         struct SynAck syn_ack;
         ssize_t recv_size = recvfrom(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, &addrlen);
@@ -216,7 +216,7 @@ void checkAck(struct sockaddr_in addr, int sockfd, int *sequenceNumber,
     (*sequenceNumber)++;
     *retries = 0;
     *timeout = DEFAULT_TIMEOUT;
-    tv->tv_usec = *timeout * USEC_PER_MILLISEC;
+    tv->tv_usec = *timeout;
 }
 
 /** @brief Sends the first bytesToTransfer bytes of the file indicated by
@@ -288,11 +288,11 @@ void rsend(char *hostname,
     int timeout = DEFAULT_TIMEOUT;
     int retries = 0;
     tv.tv_sec = 0;
-    tv.tv_usec = timeout * USEC_PER_MILLISEC;
+    tv.tv_usec = timeout;
 
     while (totalBytesSent < bytesToTransfer)
     {
-        tv.tv_usec = timeout * USEC_PER_MILLISEC;
+        tv.tv_usec = timeout;
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
         {
