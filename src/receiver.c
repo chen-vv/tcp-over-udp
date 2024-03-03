@@ -268,8 +268,9 @@ void rrecv(unsigned short int myUDPport,
         char packet_data[header.messageLength];
         memcpy(packet_data, packet + HEADER_SIZE, header.messageLength);
 
-        char *nullByte = memchr(packet_data, '\0', header.messageLength);
-        if (nullByte != NULL)
+        fwrite(packet_data, 1, header.messageLength, file);
+
+        if (header.lastPacket == TRUE)
         {
             break;
         }
@@ -316,15 +317,22 @@ int main(int argc, char **argv)
     char *destinationFile = NULL;
     unsigned long long int writeRate;
 
-    if (argc != 4)
-    {
-        fprintf(stderr, "usage: %s UDP_port filename_to_write writeRate\n\n", argv[0]);
-        exit(1);
-    }
-
     udpPort = (unsigned short int)atoi(argv[1]);
     destinationFile = argv[2];
-    writeRate = (unsigned long long int)atoll(argv[3]);
+
+    if (argc == 4)
+    {
+        writeRate = (unsigned long long int)atoll(argv[3]);
+    }
+    else if (argc == 3)
+    {
+        writeRate = 0;
+    }
+    else
+    {
+        fprintf(stderr, "usage: %s UDP_port filename_to_write [writeRate]\n\n", argv[0]);
+        exit(1);
+    }
 
     rrecv(udpPort, destinationFile, writeRate);
 

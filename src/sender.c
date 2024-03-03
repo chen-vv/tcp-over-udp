@@ -313,6 +313,15 @@ void rsend(char *hostname,
 
             header.sequenceNumber = _sequenceNumber;
             header.messageLength = bytesRead;
+            if (totalBytesSent + MAX_BUFFER_SIZE > bytesToTransfer)
+            {
+                header.lastPacket = TRUE;
+            }
+            else
+            {
+                header.lastPacket = FALSE;
+            }
+
             memcpy(packet, &header, HEADER_SIZE);
         }
 
@@ -325,17 +334,6 @@ void rsend(char *hostname,
 
         checkAck(addr, sockfd, &_sequenceNumber, &totalBytesSent, bytesSentThisTime, &timeout, &retries, &tv);
     }
-
-    // Send null terminating packet
-    packet[HEADER_SIZE] = '\0';
-    int bytesSentThisTime = sendto(sockfd, packet, HEADER_SIZE + MAX_BUFFER_SIZE, 0, (struct sockaddr *)&addr, sizeof(addr));
-    if (bytesSentThisTime < 0)
-    {
-        perror("sendto");
-        exit(1);
-    }
-
-    checkAck(addr, sockfd, &_sequenceNumber, &totalBytesSent, bytesSentThisTime, &timeout, &retries, &tv);
 
     fclose(file);
     close(sockfd);
