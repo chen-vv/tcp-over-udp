@@ -16,7 +16,7 @@ def measure_bandwidth():
             "europa.eomielan-194296.elec331sp2024.emulab.net",
             "12345",
             SEND_FILENAME,
-            os.path.getsize(SEND_FILENAME),
+            str(os.path.getsize(SEND_FILENAME)),
         ]
     )
     sender_process.wait()
