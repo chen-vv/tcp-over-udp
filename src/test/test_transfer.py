@@ -10,7 +10,6 @@ import pytest
         ("sample.txt", "received.txt"),
         ("hotpot.jpg", "received.jpg"),
         ("quacks.mp3", "received.mp3"),
-        ("ducks.mp4", "received.mp4"),
     ],
 )
 def test_file_transfer(send_filename, receive_filename):

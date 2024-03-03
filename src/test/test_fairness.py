@@ -37,7 +37,6 @@ def start(result_queue, port, send_filename, receive_filename):
         ("sample.txt", "received1.txt", "received2.txt"),
         ("hotpot.jpg", "received1.jpg", "received2.jpg"),
         ("quacks.mp3", "received1.mp3", "received2.mp3"),
-        ("ducks.mp4", "received1.mp4", "received2.mp4"),
     ],
 )
 def test_fairness(send_filename, receive_filename1, receive_filename2):

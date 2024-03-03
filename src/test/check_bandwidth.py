@@ -2,8 +2,8 @@ import os
 import subprocess
 import time
 
-RECEIVE_FILENAME = "received.mp4"
-SEND_FILENAME = "ducks.mp4"
+RECEIVE_FILENAME = "received.mp3"
+SEND_FILENAME = "quacks.mp3"
 
 
 def measure_bandwidth():
