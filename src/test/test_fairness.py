@@ -6,23 +6,23 @@ import time
 
 import pytest
 
-CONVERGENCE_THRESHOLD = 0.1  # 10% threshold for fairness
+CONVERGENCE_THRESHOLD = 0.1  # 10% threshold
 MAX_RTT_COUNT = 100
-TEST_FILENAME = "output.txt"
-TRANSFER_BYTES = os.path.getsize(TEST_FILENAME)
+PORT1 = 12345
+PORT2 = 12346
 HOSTNAME = "localhost"
 
 
-def start1(result_queue):
+def start(result_queue, port, send_filename, receive_filename):
     start = time.time()
-    receiver = subprocess.Popen(["../../receiver", str(12345), "received1.txt"])
+    receiver = subprocess.Popen(["../../receiver", str(port), receive_filename])
     sender = subprocess.Popen(
         [
             "../../sender",
             HOSTNAME,
-            str(12345),
-            TEST_FILENAME,
-            str(TRANSFER_BYTES),
+            str(port),
+            send_filename,
+            str(os.path.getsize(send_filename)),
         ]
     )
     receiver.wait()
@@ -31,30 +31,37 @@ def start1(result_queue):
     result_queue.put(end - start)
 
 
-def start2(result_queue):
-    start = time.time()
-    receiver = subprocess.Popen(["../../receiver", str(12346), "received2.txt"])
-    sender = subprocess.Popen(
-        [
-            "../../sender",
-            HOSTNAME,
-            str(12346),
-            TEST_FILENAME,
-            str(TRANSFER_BYTES),
-        ]
-    )
-    receiver.wait()
-    sender.wait()
-    end = time.time()
-    result_queue.put(end - start)
-
-
-def test_fairness():
+@pytest.mark.parametrize(
+    "send_filename, receive_filename1, receive_filename2",
+    [
+        ("sample.txt", "received1.txt", "received2.txt"),
+        ("hotpot.jpg", "received1.jpg", "received2.jpg"),
+        ("quacks.mp3", "received1.mp3", "received2.mp3"),
+        ("ducks.mp4", "received1.mp4", "received2.mp4"),
+    ],
+)
+def test_fairness(send_filename, receive_filename1, receive_filename2):
     for _ in range(5):
         result_queue = queue.Queue()
 
-        thread1 = threading.Thread(target=start1, args=(result_queue,))
-        thread2 = threading.Thread(target=start2, args=(result_queue,))
+        thread1 = threading.Thread(
+            target=start,
+            args=(
+                result_queue,
+                PORT1,
+                send_filename,
+                receive_filename1,
+            ),
+        )
+        thread2 = threading.Thread(
+            target=start,
+            args=(
+                result_queue,
+                PORT2,
+                send_filename,
+                receive_filename2,
+            ),
+        )
 
         thread1.start()
         thread2.start()
@@ -65,8 +72,10 @@ def test_fairness():
         time1 = result_queue.get()
         time2 = result_queue.get()
 
-        throughput1 = TRANSFER_BYTES / time1
-        throughput2 = TRANSFER_BYTES / time2
+        transfer_bytes = os.path.getsize(send_filename)
+
+        throughput1 = transfer_bytes / time1
+        throughput2 = transfer_bytes / time2
         throughputs = (throughput1, throughput2)
 
         fairness_ratio = max(throughputs) / min(throughputs)

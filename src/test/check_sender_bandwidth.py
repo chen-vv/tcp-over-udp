@@ -1,8 +1,10 @@
-"""Run this script to measure the bandwidth usage of the sender."""
+"""Run this script to start and measure the bandwidth usage of the sender."""
 
 import os
 import subprocess
 import time
+
+SEND_FILENAME = "ducks.mp4"
 
 
 def measure_bandwidth():
@@ -10,10 +12,10 @@ def measure_bandwidth():
 
     sender_process = subprocess.Popen(
         [
-            "./sender",
+            "../../sender",
             "europa.eomielan-194296.elec331sp2024.emulab.net",
             "12345",
-            "src/test/output.txt",
+            SEND_FILENAME,
         ]
     )
     sender_process.wait()
@@ -21,7 +23,7 @@ def measure_bandwidth():
     end = time.time()
 
     duration = end - start
-    bandwidth_in_bytes = os.path.getsize("src/test/output.txt")
+    bandwidth_in_bytes = os.path.getsize(SEND_FILENAME)
     bandwidth_in_bits = bandwidth_in_bytes * 8
     bandwidth_in_mbps = (bandwidth_in_bits / duration) / (1024 * 1024)
 
