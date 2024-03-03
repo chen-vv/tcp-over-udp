@@ -128,13 +128,12 @@ void rrecv(unsigned short int myUDPport,
         char packet_data[header.messageLength];
         memcpy(packet_data, packet + HEADER_SIZE, header.messageLength);
 
-        char *nullByte = memchr(packet_data, '\0', header.messageLength);
-        if (nullByte != NULL)
+        fwrite(packet_data, 1, header.messageLength, file);
+
+        if (header.lastPacket == TRUE)
         {
             break;
         }
-
-        fwrite(packet_data, 1, header.messageLength, file);
 
         bytesWritten += bytesReceived;
         time(&end);
