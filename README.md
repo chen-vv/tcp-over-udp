@@ -61,7 +61,7 @@ These tests are to check the bandwith usage of the protocol and the senrate of t
 To run the test:
 
 1. In the command line, navigate to the test directory using `cd src/test`.
-2. Run `pytest test_transfer.py` to execute the test suite.
+2. Run `python3 check_bandwidth.py` or `python3 check_sendrate.py` to execute the test suite.
 3. The results will be displayed on the console.
 
 ### Troubleshooting
