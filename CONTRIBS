@@ -5,3 +5,7 @@ Vicky Chen (chen-vv)
 - Wrote comments and generated documentation
 
 Eric Omielan (eomielan)
+
+- Wrote tests for transfer, fairness, checking bandwidth usage and sender throughput
+- Implemented the `rsend` and `rrecv` functions
+- Helped creating the 3-way handshake, testing and resolving bugs
