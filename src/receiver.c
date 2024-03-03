@@ -22,6 +22,7 @@
 #include <time.h>
 #include <fcntl.h>
 
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -70,39 +71,54 @@ void send_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 
         // Send syn
         struct Syn syn;
-        syn.sequenceNumber = 123;
+        syn.sequenceNumber = 111;
 
-        char syn_buffer[sizeof(struct Syn)];
-        memcpy(syn_buffer, &syn, sizeof(struct Syn));
+        // char syn_buffer[sizeof(struct Syn)];
+        // memcpy(syn_buffer, &syn, sizeof(struct Syn));
 
-        ssize_t size = sendto(sockfd, syn_buffer, sizeof(syn_buffer), 0, (struct sockaddr *)&addr, addrlen);
+        ssize_t size = sendto(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, addrlen);
 
-        printf("%p %d", addr, addrlen);
         printf("Size sent %zd \n", size);
+        // usleep(timeout * USEC_PER_MILLISEC);
 
         // Wait for syn-ack
+        // char recv_buffer[sizeof(struct SynAck)];
         struct SynAck syn_ack;
-        ssize_t recv_size = recvfrom(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, &addrlen);
+        // struct Syn testSyn;
+        // ssize_t recv_size = recvfrom(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, &addrlen);
+
+        // printf("Size received %zd \n", recv_size);
+        ssize_t recv_size = 666;
+        // if (recv_size == sizeof(struct SynAck))
+        // {
+        // Assuming the received data is of the correct size
+        // memcpy(&syn_ack, recv_buffer, sizeof(recv_buffer));
 
         // TODO: What happens if recv_size == 0?
-        if (recv_size > 0)
+        if (recv_size > 0 && recv_size == sizeof(struct SynAck))
         {
-            // reply with final ack
-            printf("Received SYN-ACK with seq: %d, ack: %d\n", syn_ack.sequenceNumber, syn_ack.ackNumber);
 
+            // reply with final ack
+            printf("Received SYN-ACK with seq: %d\n", syn_ack.sequenceNumber);
+
+            // printf("Ack: %d", syn_ack.ackNumber);
             struct Ack ack;
             ack.ackNumber = syn_ack.sequenceNumber + 1;
-            sendto(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)&addr, addrlen);
+            printf("Help1");
+            sendto(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)addr, addrlen);
 
+            printf("Help");
             break;
         }
 
-        else if (recv_size == -1)
+        else if (recv_size == -1 || errno == EAGAIN || errno == EWOULDBLOCK)
         {
+            printf("recv_size less than 1");
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
                 // syn-ack not received yet. Double timeout (exponential backoff fancy hohoho)
-                // timeout *= 2;
+                timeout *= 2;
+                printf("Timeout: %d\n", timeout);
                 continue;
             }
             else
@@ -111,6 +127,8 @@ void send_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
                 exit(1);
             }
         }
+
+        timeout *= 2;
     }
 }
 
@@ -157,6 +175,9 @@ void rrecv(unsigned short int myUDPport,
         exit(1);
     }
 
+    // Establish connection with sender
+    send_syn(sockfd, &addr, addrlen);
+
     FILE *file = fopen(destinationFile, "wb");
     if (file == NULL)
     {
@@ -169,9 +190,6 @@ void rrecv(unsigned short int myUDPport,
     time(&start);
 
     unsigned long long bytesWritten = 0;
-
-    // Establish connection with sender
-    send_syn(sockfd, &addr, addrlen);
 
     while (1)
     {

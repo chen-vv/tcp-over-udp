@@ -8,11 +8,12 @@
 
 #define HEADER_SIZE sizeof(struct Header)
 #define USEC_PER_MILLISEC 1000
-#define MAX_BUFFER_SIZE 2
+#define MAX_BUFFER_SIZE 1024
 #define DEFAULT_TIMEOUT 100
 #define MAX_RETRIES 3
 #define MAX_ACK_SIZE sizeof(uint32_t)
-#define SYN_ACK_TIMEOUT_MILLISEC 500
+#define SYN_ACK_TIMEOUT_MILLISEC 100
+#define SYN_ACK_MAX_TIMEOUT 3200
 
 struct Header
 {

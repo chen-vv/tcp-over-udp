@@ -75,7 +75,11 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
         }
 
         struct Syn syn;
+
+        printf("Listening for bytes\n");
         ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, &addrlen);
+        printf("Received %zd bytes\n", bytes_received);
+
         if (bytes_received > 0)
         {
             printf("Received SYN packet with seq: %d\n", syn.sequenceNumber);
@@ -91,7 +95,7 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 
                 // Wait for ack
                 struct Ack ack;
-                ssize_t recv_size = recvfrom(sockfd, &ack, sizeof(struct Ack), MSG_DONTWAIT, (struct sockaddr *)addr, &addrlen);
+                ssize_t recv_size = recvfrom(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)addr, &addrlen);
                 if (recv_size > 0)
                 {
                     printf("Received ACK packet with ack num: %d\n", ack.ackNumber);
@@ -102,6 +106,11 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
                     if (errno == EAGAIN || errno == EWOULDBLOCK)
                     {
                         // ack not received yet
+                        printf("ack timeout\n");
+                        if (timeout * 2 < SYN_ACK_MAX_TIMEOUT)
+                        {
+                            timeout *= 2;
+                        }
                         continue;
                     }
                     else
@@ -117,6 +126,13 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
                 // no syn yet
+                printf("Syn timeout, new timeout: %d\n", timeout * 2);
+
+                if (timeout * 2 < SYN_ACK_MAX_TIMEOUT)
+                {
+                    timeout *= 2;
+                }
+
                 continue;
             }
             else
@@ -236,6 +252,8 @@ void rsend(char *hostname,
     addr.sin_port = htons(hostUDPport);
     memcpy(&addr.sin_addr.s_addr, host->h_addr, host->h_length);
 
+    receive_syn(sockfd, &addr, sizeof(addr));
+
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
     {
@@ -247,8 +265,6 @@ void rsend(char *hostname,
     {
         bytesToTransfer = getFileSize(filename);
     }
-
-    receive_syn(sockfd, &addr, sizeof(addr));
 
     unsigned long long bytesSent = 0;
     char packet_data[MAX_BUFFER_SIZE];
