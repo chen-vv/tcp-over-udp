@@ -1,4 +1,4 @@
-"""Run this script to start and measure the bandwidth usage of the sender."""
+"""Run this script to start and measure the throughput usage of the sender."""
 
 import os
 import subprocess
@@ -33,4 +33,4 @@ def measure_bandwidth():
 
 if __name__ == "__main__":
     bandwidth, duration = measure_bandwidth()
-    print("Bandwidth usage over {:.10f} seconds: {:.2f} Mbps".format(duration, bandwidth))
+    print("Throughput usage over {:.10f} seconds: {:.2f} Mbps".format(duration, bandwidth))
