@@ -6,3 +6,4 @@ __pycache__/
 output.txt
 received1.txt
 received2.txt
+.DS_Store
