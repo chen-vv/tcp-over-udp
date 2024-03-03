@@ -58,11 +58,20 @@ To run the test:
 
 These tests are to check the bandwith usage of the protocol and the senrate of the sender. These tests do not use pytest.
 
-To run the test:
+To run the bandwidth check:
 
 1. In the command line, navigate to the test directory using `cd src/test`.
-2. Run `python3 check_bandwidth.py` or `python3 check_sendrate.py` to execute the test suite.
+2. Run `python3 check_bandwidth.py`.
 3. The results will be displayed on the console.
+
+To run the send rate check:
+
+1. Open a session in cloudlab, and open a terminal in juno and in europa.
+2. In the command line, navigate to the test directory using `cd src/test`.
+3. Update the hostanme of europa in the script and run the script in juno with
+`python3 check_sendrate.py` while runing the receiver from the command line within europa with the
+following commmand: `./receiver 12345 received.mp3`.
+4. The results will be displayed on the console.
 
 ### Troubleshooting
 

@@ -1,10 +1,14 @@
-"""Run this script to start and measure the data sendrate of the sender."""
+"""
+Run this script to start and measure the data sendrate of the sender. Should be run on cloudlab
+within the juno vm, and the hostname of the receiver should be updated."
+"""
 
 import os
 import subprocess
 import time
 
 SEND_FILENAME = "quacks.mp3"
+RECEIVER_HOSTNAME = "europa.eomielan-194296.elec331sp2024.emulab.net"
 
 
 def measure_bandwidth():
@@ -13,7 +17,7 @@ def measure_bandwidth():
     sender_process = subprocess.Popen(
         [
             "../../sender",
-            "europa.eomielan-194296.elec331sp2024.emulab.net",
+            RECEIVER_HOSTNAME,
             "12345",
             SEND_FILENAME,
             str(os.path.getsize(SEND_FILENAME)),
