@@ -7,17 +7,34 @@
 #define TRUE 1
 
 #define HEADER_SIZE sizeof(struct Header)
-#define USEC_PER_MILLISEC 1000
 #define MAX_BUFFER_SIZE 8192
-#define DEFAULT_TIMEOUT 100
+#define DEFAULT_TIMEOUT 100000
 #define MAX_RETRIES 3
 #define MAX_ACK_SIZE sizeof(uint32_t)
+#define SYN_ACK_DEFAULT_TIMEOUT_MILLISEC 100000
+#define SYN_ACK_MAX_TIMEOUT_MILLISEC 1600
 
 struct Header
 {
     uint32_t sequenceNumber;
     uint32_t messageLength;
     u_char lastPacket;
+};
+
+struct Syn
+{
+    uint32_t sequenceNumber;
+};
+
+struct Ack
+{
+    uint32_t ackNumber;
+};
+
+struct SynAck
+{
+    uint32_t sequenceNumber;
+    uint32_t ackNumber;
 };
 
 #endif // UDP_H
