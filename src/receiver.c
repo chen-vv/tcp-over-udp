@@ -268,13 +268,6 @@ void rrecv(unsigned short int myUDPport,
         char packet_data[header.messageLength];
         memcpy(packet_data, packet + HEADER_SIZE, header.messageLength);
 
-        fwrite(packet_data, 1, header.messageLength, file);
-
-        if (header.lastPacket == TRUE)
-        {
-            break;
-        }
-
         // If packet's sequence number has already been received, discard duplicate
         if (header.sequenceNumber <= _latestSequenceNumber)
         {
@@ -282,6 +275,11 @@ void rrecv(unsigned short int myUDPport,
         }
 
         fwrite(packet_data, 1, header.messageLength, file);
+
+        if (header.lastPacket == TRUE)
+        {
+            break;
+        }
 
         bytesWritten += bytesReceived;
         _latestSequenceNumber = header.sequenceNumber;

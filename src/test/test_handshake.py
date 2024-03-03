@@ -1,7 +1,8 @@
-import subprocess
 import os
-import pytest
+import subprocess
 import time
+
+import pytest
 
 
 @pytest.fixture(autouse=True)
@@ -11,7 +12,7 @@ def clear_received_file():
         pass
 
 
-@pytest.mark.parametrize("send_filename", ["send1.txt", "send2.txt"])
+@pytest.mark.parametrize("send_filename", ["sample.txt"])
 def test_sender_starts_first(send_filename):
     with open("received.txt", "r") as received_file:
         assert received_file.read() == ""
@@ -36,7 +37,8 @@ def test_sender_starts_first(send_filename):
     assert len(send_data) == len(received_data)
     assert send_data == received_data
 
-@pytest.mark.parametrize("send_filename", ["send1.txt", "send2.txt"])
+
+@pytest.mark.parametrize("send_filename", ["sample.txt"])
 def test_receiver_starts_first(send_filename):
     with open("received.txt", "r") as received_file:
         assert received_file.read() == ""
