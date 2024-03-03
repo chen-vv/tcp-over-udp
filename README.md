@@ -24,6 +24,42 @@ Follow these steps to run the program:
 
 We used [Pytest](https://docs.pytest.org/en/8.0.x/), a Python testing framework, to test our code. These test files can be found in the `src/test` directory. To run the test suite, first ensure that you have Pytest installed, then do the following:
 
+### Transfer test
+
+This tests the transfer of 4 different files using the implemented protocol. It tests a plain text file, a jpeg file, an mp3 file, and an mp4 file. It compares both the lenght and contents of the sent and received files.
+
+To run the test:
+
+1. In the command line, navigate to the test directory using `cd src/test`.
+2. Run `pytest test_transfer.py` to execute the test suite.
+3. The results will be displayed on the console.
+
+### Handshake test
+
+This tests the 3-way handshake protocol by testing the transfer of a file when the receiver is started before the sender and when the sender is started before the receiver. It compares both the length of the send and received files as well as their contents.
+
+To run the test:
+
+1. In the command line, navigate to the test directory using `cd src/test`.
+2. Run `pytest test_handshake.py` to execute the test suite.
+3. The results will be displayed on the console.
+
+### Fairness test
+
+This tests the fairness between two competing instances of the protocol to ensure they fairly share the link.
+
+To run the test:
+
+1. In the command line, navigate to the test directory using `cd src/test`.
+2. Run `pytest test_fairness.py` to execute the test suite.
+3. The results will be displayed on the console.
+
+### Bandwidth & send rate tests
+
+These tests are to check the bandwith usage of the protocol and the senrate of the sender. These tests do not use pytest.
+
+To run the test:
+
 1. In the command line, navigate to the test directory using `cd src/test`.
 2. Run `pytest test_transfer.py` to execute the test suite.
 3. The results will be displayed on the console.
