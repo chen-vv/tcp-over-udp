@@ -31,8 +31,16 @@
 #include <errno.h>
 #include "include/udp.h"
 
-// Global variable to store the most recent sequence number
-uint32_t latestSequenceNumber = 0; // Initialize to an invalid value
+/* -- Global Variables -- */
+
+/**
+ * @brief The most recent sequence number of a received packet.
+ *
+ * By default, this is set to 0. This is used to keep track of the
+ * most recent sequence number received from the sender. This is
+ * used to discard duplicate packets.
+ */
+uint32_t _latestSequenceNumber = 0;
 
 /**
  * @brief Sends an acknowledgment message to the sender.
@@ -40,13 +48,17 @@ uint32_t latestSequenceNumber = 0; // Initialize to an invalid value
  * TODO: add sequence number to ack_msg (depends on how this is implemented in sender)
  * btw this is for sending an acknowledgement that a packet was received
  *
- * @param sockfd
- * @param addr
- * @param addrlen
+ * @param sockfd The socket file descriptor
+ * @param addr The address of the sender
+ * @param addrlen The length of the address
+ * @param sequenceNumber The sequence number of the packet to acknowledge
+ * @return Void
+ *
+ * Sources:
+ * https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
  */
 void send_packet_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, uint32_t sequenceNumber)
 {
-    // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-sendto-send-data-socket
     if (sendto(sockfd, &sequenceNumber, sizeof(uint32_t), 0, (struct sockaddr *)addr, addrlen) == -1)
     {
         perror("sendto");
@@ -54,25 +66,36 @@ void send_packet_ack(int sockfd, struct sockaddr_in *addr, socklen_t addrlen, ui
     }
 }
 
-void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
+/**
+ * @brief Establishes a connection with the sender using the 3-way handshake process.
+ *
+ * Receives a SYN packet from the sender and sends a SYN-ACK packet back. Upon receiving
+ * the final ACK packet, the connection is established.
+ *
+ * This function sets a random value for the sequence number that will be sent to the
+ * sender. This is used to ensure that the sender and receiver are in sync with each other
+ * and that the packets are not duplicated or lost. While the sequence number could always
+ * be set to 0, this would make the protocol more susceptible to attacks and would not be
+ * as robust as using a random sequence number.
+ *
+ * If the initial SYN packet or final ACK packet is not received within a certain timeout,
+ * this function will initiate an exponential backoff mechanism and double the timeout until a
+ * maximum timeout is reached.
+ *
+ * @param sockfd The socket file descriptor
+ * @param addr The address of the sender
+ * @param addrlen The length of the address
+ * @return Void
+ */
+void establish_connection(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
 {
-    printf("Waiting for SYN packet\n");
-
-    // // set socket to non-blocking mode
-    // int flags = fcntl(sockfd, F_GETFL, 0);
-    // flags |= O_NONBLOCK;
-    // if (fcntl(sockfd, F_SETFL, flags) == -1)
-    // {
-    //     perror("fcntl - F_SETFL");
-    //     exit(1);
-    // }
-
     struct timeval tv;
-    int timeout = SYN_ACK_TIMEOUT_MILLISEC;
+    int timeout = SYN_ACK_DEFAULT_TIMEOUT_MILLISEC;
     tv.tv_sec = 0;
 
-    while (1)
+    while (TRUE)
     {
+        // Set timeout for SYN and ACK packets
         tv.tv_usec = timeout * USEC_PER_MILLISEC;
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
@@ -81,44 +104,46 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
             exit(1);
         }
 
+        // Listen for SYN packet
         struct Syn syn;
-
-        printf("Listening for bytes\n");
         ssize_t bytes_received = recvfrom(sockfd, &syn, sizeof(struct Syn), 0, (struct sockaddr *)addr, &addrlen);
-        printf("Received %zd bytes\n", bytes_received);
 
         if (bytes_received > 0)
         {
-            printf("Received SYN packet with seq: %d\n", syn.sequenceNumber);
-
-            // Reply with syn-ack
             struct SynAck syn_ack;
-            syn_ack.sequenceNumber = 777;
+
+            // Initialize sequence number and ack number
+            srand(time(NULL));
+            syn_ack.sequenceNumber = rand();
             syn_ack.ackNumber = syn.sequenceNumber + 1;
+
+            timeout = SYN_ACK_DEFAULT_TIMEOUT_MILLISEC;
+            tv.tv_usec = timeout * USEC_PER_MILLISEC;
 
             while (TRUE)
             {
+                // Send SYN-ACK packet
                 sendto(sockfd, &syn_ack, sizeof(struct SynAck), 0, (struct sockaddr *)addr, addrlen);
 
-                printf("Sending synack with %d and %d\n", syn_ack.sequenceNumber, syn_ack.ackNumber);
-                // Wait for ack
+                // Listen for ACK packet
                 struct Ack ack;
                 ssize_t recv_size = recvfrom(sockfd, &ack, sizeof(struct Ack), 0, (struct sockaddr *)addr, &addrlen);
+
                 if (recv_size > 0)
                 {
-                    printf("Received ACK packet with ack num: %d\n", ack.ackNumber);
+                    assert(ack.ackNumber == syn_ack.ackNumber);
                     return;
                 }
                 else if (recv_size == -1)
                 {
+                    // ACK packet not received, update timeout and resend SYN-ACK
                     if (errno == EAGAIN || errno == EWOULDBLOCK)
                     {
-                        // ack not received yet
-                        printf("ack timeout\n");
-                        if (timeout * 2 < SYN_ACK_MAX_TIMEOUT)
+                        if (timeout < SYN_ACK_MAX_TIMEOUT_MILLISEC)
                         {
                             timeout *= 2;
                         }
+
                         continue;
                     }
                     else
@@ -129,14 +154,13 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
                 }
             }
         }
+
         else if (bytes_received == -1)
         {
+            // SYN packet not received, update timeout and resend SYN
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                // no syn yet
-                printf("Syn timeout, new timeout: %d\n", timeout * 2);
-
-                if (timeout * 2 < SYN_ACK_MAX_TIMEOUT)
+                if (timeout < SYN_ACK_MAX_TIMEOUT_MILLISEC)
                 {
                     timeout *= 2;
                 }
@@ -150,46 +174,34 @@ void receive_syn(int sockfd, struct sockaddr_in *addr, socklen_t addrlen)
             }
         }
     }
-
-    // // revert socket to blocking mode
-    // flags &= ~O_NONBLOCK;
-    // if (fcntl(sockfd, F_SETFL, flags) == -1)
-    // {
-    //     perror("fcntl - F_SETFL");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // send syn-ack
-    char syn = 0;
-    ssize_t size = sendto(sockfd, &syn, sizeof(char), 0, (struct sockaddr *)addr, addrlen);
-    if (size == -1)
-    {
-        perror("sendto");
-        exit(1);
-    }
 }
 
 /** @brief Writes the bytes received on port myUDPport to a file
  *         called destinationFile at a rate of writeRate bytes
  *         per second.
  *
- *  If writeRate is 0 then the receiver can write as many bytes
+ *  If writeRate is 0, then the receiver can write as many bytes
  *  as possible into destinationFile. Otherwise, if writeRate is
- *  non-zero then the receiver should write no more than
- *  writeRate bytes per second to destinationFile. See rsend for
- *  the counterpart function.
+ *  non-zero then the receiver writes no more than writeRate bytes
+ *  per second to destinationFile. See rsend for the counterpart function.
  *
  *  @param myUDPport The port number to listen on.
  *  @param destinationFile The name of the file to write to.
  *  @param writeRate The maximum number of bytes to write per second.
  *                   Must be an integer greater than or equal to zero.
  *  @return Void.
+ *
+ *  Sources:
+ *  https://www.geeksforgeeks.org/socket-programming-cc/
+ *  https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
+ *  https://www.geeksforgeeks.org/time-function-in-c/
+ *  https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
  */
 void rrecv(unsigned short int myUDPport,
            char *destinationFile,
            unsigned long long int writeRate)
 {
-    // https://www.geeksforgeeks.org/socket-programming-cc/
+    // Initialize socket
     int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sockfd < 0)
     {
@@ -197,7 +209,6 @@ void rrecv(unsigned short int myUDPport,
         exit(1);
     }
 
-    // https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(myUDPport);
@@ -212,6 +223,7 @@ void rrecv(unsigned short int myUDPport,
         exit(1);
     }
 
+    // Prepare file for writing
     FILE *file = fopen(destinationFile, "wb");
     if (file == NULL)
     {
@@ -219,18 +231,16 @@ void rrecv(unsigned short int myUDPport,
         exit(1);
     }
 
-    // Establish connection with sender
-    receive_syn(sockfd, &addr, addrlen);
+    // Establish connection with sender prior to receiving packets
+    establish_connection(sockfd, &addr, addrlen);
 
-    // https://www.geeksforgeeks.org/time-function-in-c/
     time_t start, end;
     time(&start);
 
     unsigned long long bytesWritten = 0;
 
-    while (1)
+    while (TRUE)
     {
-        // https://www.ibm.com/docs/en/zos/3.1.0?topic=functions-recvfrom-receive-messages-socket
         int packetSize = MAX_BUFFER_SIZE + HEADER_SIZE;
         char packet[packetSize];
 
@@ -258,18 +268,16 @@ void rrecv(unsigned short int myUDPport,
             break;
         }
 
-        printf("Executing write...");
-        // TODO: If a packet is received with a sequence number that has already been received, discard.
-        if (header.sequenceNumber <= latestSequenceNumber)
+        // If packet's sequence number has already been received, discard duplicate
+        if (header.sequenceNumber <= _latestSequenceNumber)
         {
-            printf("Discarding packet with sequence number %d. latest: %d\n", header.sequenceNumber, latestSequenceNumber);
             continue;
         }
 
         fwrite(packet_data, 1, header.messageLength, file);
 
         bytesWritten += bytesReceived;
-        latestSequenceNumber = header.sequenceNumber;
+        _latestSequenceNumber = header.sequenceNumber;
 
         time(&end);
         double seconds = difftime(end, start);
@@ -289,7 +297,9 @@ void rrecv(unsigned short int myUDPport,
 
 /** @brief UDP receiver entrypoint.
  *
- *  TODO: Implement main & write comments
+ *  Parses the command line arguments and calls the rrecv function
+ *  to receive the file. If writeRate is not specified, then the
+ *  default value is 0.
  *
  *  @return Should not return
  */
