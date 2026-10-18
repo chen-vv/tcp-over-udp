@@ -1,4 +1,4 @@
-# ELEC 331 Programming Assignment 1: TCP
+# TCP Protocol over UDP
 
 ## Overview
 
